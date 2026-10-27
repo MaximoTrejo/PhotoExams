@@ -1,0 +1,293 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="app-toolbar">
+    <ion-title class="toolbar-title">
+      <div class="brand-wrap">
+        <ion-icon name="book-outline" class="brand-icon"></ion-icon>
+        <span>PhotoExams</span>
+      </div>
+    </ion-title>
+
+    <ion-buttons slot="end" class="nav-buttons">
+      <ion-button routerLink="/syllabus" class="nav-btn" fill="clear" size="small">
+        Resumen
+      </ion-button>
+      <ion-button routerLink="/practice" class="nav-btn" fill="clear" size="small">
+        Práctica
+      </ion-button>
+      <ion-button routerLink="/feedback" class="nav-btn active-nav" fill="solid" size="small">
+        Corrección
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-content">
+  <div class="main-container">
+    <!-- Encabezado principal -->
+    <section class="hero-header">
+      <div class="hero-top-row">
+        <div>
+          <div class="hero-badge">
+            <ion-icon name="sparkles-outline"></ion-icon>
+            <span>Evaluación personalizada</span>
+          </div>
+          <h1 class="page-title">Retroalimentación de tu práctica</h1>
+          <p class="page-subtitle">
+            Revisa tus aciertos, las correcciones gramaticales importantes y las
+            sugerencias basadas en tu resumen de clase.
+          </p>
+        </div>
+
+        <ion-button class="primary-btn" (click)="startAnotherPractice()">
+          <ion-icon slot="start" name="camera-outline"></ion-icon>
+          <span>Nueva práctica</span>
+        </ion-button>
+      </div>
+    </section>
+
+    @if (!isFeedbackReady || !session || !feedback) {
+      <!-- Estado cuando no hay una práctica recién evaluada -->
+      <ion-card class="surface-card empty-feedback-card">
+        <ion-card-header>
+          <ion-card-subtitle>Sin evaluación activa</ion-card-subtitle>
+          <ion-card-title>Aún no has enviado una respuesta para corregir</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="empty-text">
+            Dirígete a la pantalla de <strong>Práctica</strong>, observa la fotografía,
+            responde las cinco preguntas en inglés y pulsa <em>Enviar respuesta</em> para
+            recibir la corrección del profesor IA.
+          </p>
+          <ion-button class="primary-btn" (click)="startAnotherPractice()">
+            <ion-icon slot="start" name="camera-outline"></ion-icon>
+            <span>Ir a Practicar Ahora</span>
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    } @else {
+      <!-- 7.3. Indicadores diferenciados: Corrección IA vs Guardado en Supabase -->
+      <div class="status-pills-grid">
+        <!-- Estado 1: Corrección generada -->
+        <div class="status-pill pill-ai-success" role="status">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          <div>
+            <strong>Corrección generada correctamente</strong>
+            <span>Evaluación completada por Gemini según tu resumen.</span>
+          </div>
+        </div>
+
+        <!-- Estado 2: Guardado en Supabase -->
+        @if (isSavingPractice) {
+          <div class="status-pill pill-db-loading" role="status">
+            <ion-spinner name="crescent"></ion-spinner>
+            <div>
+              <strong>Guardando práctica en Supabase...</strong>
+              <span>Registrando imagen, preguntas, respuesta y retroalimentación.</span>
+            </div>
+          </div>
+        } @else if (isPracticeSaved) {
+          <div class="status-pill pill-db-success" role="status">
+            <ion-icon name="cloud-done-outline"></ion-icon>
+            <div>
+              <strong>Práctica guardada correctamente</strong>
+              <span>{{ saveSuccessMessage || 'Almacenada en tu historial de Supabase.' }}</span>
+            </div>
+          </div>
+        } @else if (saveErrorMessage) {
+          <div class="status-pill pill-db-error" role="alert">
+            <ion-icon name="cloud-offline-outline"></ion-icon>
+            <div class="error-pill-body">
+              <div>
+                <strong>No se pudo guardar la práctica en Supabase</strong>
+                <span>{{ saveErrorMessage }}</span>
+              </div>
+              <ion-button
+                size="small"
+                fill="outline"
+                class="retry-save-btn"
+                (click)="persistCurrentPractice()"
+              >
+                <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                Reintentar guardado
+              </ion-button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- 7.2. TARJETA 1: ERRORES -->
+      <ion-card class="surface-card feedback-card card-errores">
+        <ion-card-header class="feedback-card-header">
+          <div class="header-icon-wrap icon-errores">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+          </div>
+          <div>
+            <ion-card-subtitle>Revisión gramatical</ion-card-subtitle>
+            <ion-card-title>Errores</ion-card-title>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          @if (feedback.errores.length === 0) {
+            <div class="no-errors-box">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              <p>
+                {{
+                  feedback.noErrorsMessage ||
+                    '¡Muy bien! Tu respuesta no presenta errores gramaticales relevantes.'
+                }}
+              </p>
+            </div>
+          } @else {
+            <div class="errors-list">
+              @for (item of feedback.errores; track $index) {
+                <div class="error-item-box">
+                  <div class="phrase-row phrase-original">
+                    <span class="phrase-tag tag-original">Frase original</span>
+                    <p class="phrase-text">"{{ item.original }}"</p>
+                  </div>
+                  <div class="phrase-row phrase-corrected">
+                    <span class="phrase-tag tag-corrected">Versión corregida</span>
+                    <p class="phrase-text">"{{ item.corrected }}"</p>
+                  </div>
+                  <p class="error-explanation">
+                    <strong>Explicación:</strong> {{ item.explanation }}
+                  </p>
+                </div>
+              }
+            </div>
+          }
+        </ion-card-content>
+      </ion-card>
+
+      <!-- 7.2. TARJETA 2: ACIERTOS -->
+      <ion-card class="surface-card feedback-card card-aciertos">
+        <ion-card-header class="feedback-card-header">
+          <div class="header-icon-wrap icon-aciertos">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+          </div>
+          <div>
+            <ion-card-subtitle>Lo que aplicaste muy bien</ion-card-subtitle>
+            <ion-card-title>Aciertos</ion-card-title>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          @if (feedback.aciertos.length === 0) {
+            <p class="empty-section-msg">
+              Lograste responder en inglés intentando describir la situación de la
+              fotografía. ¡Sigue practicando!
+            </p>
+          } @else {
+            <ul class="feedback-bullet-list aciertos-list">
+              @for (acierto of feedback.aciertos; track $index) {
+                <li>
+                  <span class="bullet-dot dot-green"></span>
+                  <div class="bullet-content">{{ acierto }}</div>
+                </li>
+              }
+            </ul>
+          }
+        </ion-card-content>
+      </ion-card>
+
+      <!-- 7.2. TARJETA 3: SUGERENCIAS -->
+      <ion-card class="surface-card feedback-card card-sugerencias">
+        <ion-card-header class="feedback-card-header">
+          <div class="header-icon-wrap icon-sugerencias">
+            <ion-icon name="bulb-outline"></ion-icon>
+          </div>
+          <div>
+            <ion-card-subtitle>Consejos para tu examen oral</ion-card-subtitle>
+            <ion-card-title>Sugerencias</ion-card-title>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          @if (feedback.sugerencias.length === 0) {
+            <p class="empty-section-msg">
+              No hay sugerencias adicionales por ahora. Tu respuesta cubre adecuadamente
+              los puntos solicitados.
+            </p>
+          } @else {
+            <div class="suggestions-list">
+              @for (sug of feedback.sugerencias; track $index) {
+                <div class="suggestion-item-box">
+                  <div class="suggestion-number">{{ $index + 1 }}</div>
+                  <div class="suggestion-body">
+                    <p class="suggestion-advice">{{ sug.advice }}</p>
+                    @if (sug.example) {
+                      <div class="suggestion-example">
+                        <span>Ejemplo útil:</span>
+                        <em>"{{ sug.example }}"</em>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Resumen de la práctica evaluada (Fotografía, Preguntas y Respuesta del estudiante) -->
+      <ion-card class="surface-card context-review-card">
+        <ion-card-header>
+          <ion-card-subtitle>Referencia de la práctica</ion-card-subtitle>
+          <ion-card-title>Fotografía, preguntas y tu respuesta</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="review-grid">
+            <div class="review-photo-col">
+              <ion-img
+                class="review-thumb"
+                [src]="session.resolvedImageUrl || session.imageUrl"
+                alt="Fotografía de la práctica evaluada"
+              ></ion-img>
+            </div>
+            <div class="review-text-col">
+              <h4 class="review-heading">Questions asked:</h4>
+              <ol class="review-questions-list">
+                @for (q of session.questions; track $index) {
+                  <li>{{ q }}</li>
+                }
+              </ol>
+
+              <h4 class="review-heading">Your submitted answer:</h4>
+              <div class="submitted-answer-box">
+                {{ session.userAnswer }}
+              </div>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- Historial reciente de prácticas guardadas en Supabase -->
+    @if (recentPractices.length > 0) {
+      <ion-card class="surface-card history-card">
+        <ion-card-header>
+          <ion-card-subtitle>Guardado en Supabase</ion-card-subtitle>
+          <ion-card-title>Historial reciente de prácticas</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="history-list">
+            @for (record of recentPractices; track record.id) {
+              <div
+                class="history-item"
+                [class.active-history]="session?.savedPracticeId === record.id"
+                (click)="selectHistoryPractice(record)"
+              >
+                <div class="history-meta">
+                  <ion-icon name="time-outline"></ion-icon>
+                  <span>{{ record.created_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+                <p class="history-snippet">{{ record.user_answer }}</p>
+              </div>
+            }
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+  </div>
+</ion-content>

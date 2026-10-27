@@ -1,0 +1,382 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="app-toolbar">
+    <ion-title class="toolbar-title">
+      <div class="brand-wrap">
+        <ion-icon name="book-outline" class="brand-icon"></ion-icon>
+        <span>PhotoExams</span>
+      </div>
+    </ion-title>
+
+    <ion-buttons slot="end" class="nav-buttons">
+      <ion-button routerLink="/syllabus" class="nav-btn" fill="clear" size="small">
+        Resumen
+      </ion-button>
+      <ion-button routerLink="/practice" class="nav-btn active-nav" fill="solid" size="small">
+        Práctica
+      </ion-button>
+      <ion-button routerLink="/feedback" class="nav-btn" fill="clear" size="small">
+        Corrección
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-content">
+  <div class="main-container">
+    <!-- Encabezado principal -->
+    <section class="hero-header">
+      <div class="hero-top-row">
+        <div>
+          <div class="hero-badge">
+            <ion-icon name="camera-outline"></ion-icon>
+            <span>Examen Oral Escolar</span>
+          </div>
+          <h1 class="page-title">Talk About the Picture</h1>
+          <p class="page-subtitle">
+            Observa la escena, utiliza las cinco preguntas como guía y responde en
+            inglés hablando con el micrófono o escribiendo tu descripción.
+          </p>
+        </div>
+
+        @if (hasSavedSyllabus) {
+          <ion-button
+            fill="outline"
+            class="secondary-btn new-photo-btn"
+            (click)="onRequestNewPractice()"
+            [disabled]="
+              isGeneratingQuestions ||
+              isSubmittingAnswer ||
+              isCheckingSyllabus ||
+              isRecordingAudio ||
+              isTranscribingAudio
+            "
+          >
+            <ion-icon slot="start" name="refresh-outline"></ion-icon>
+            <span>Nueva fotografía</span>
+          </ion-button>
+        }
+      </div>
+    </section>
+
+    <!-- Estado de verificación de resumen -->
+    @if (isCheckingSyllabus) {
+      <ion-card class="surface-card status-card">
+        <ion-card-content class="centered-status">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Recuperando tu resumen de inglés desde Supabase...</p>
+        </ion-card-content>
+      </ion-card>
+    } @else if (syllabusError) {
+      <ion-card class="surface-card status-card">
+        <ion-card-content>
+          <div class="alert-banner alert-error">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>{{ syllabusError }}</span>
+          </div>
+          <div class="status-actions">
+            <ion-button class="primary-btn" (click)="initializePracticeScreen(false)">
+              <ion-icon slot="start" name="refresh-outline"></ion-icon>
+              Reintentar
+            </ion-button>
+            <ion-button fill="outline" class="secondary-btn" (click)="goToSyllabus()">
+              <ion-icon slot="start" name="book-outline"></ion-icon>
+              Ir a Mi Resumen
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    } @else if (!hasSavedSyllabus) {
+      <!-- Mensaje claro cuando el estudiante todavía no guardó su resumen -->
+      <ion-card class="surface-card empty-syllabus-card">
+        <ion-card-header>
+          <ion-card-subtitle>Paso previo requerido</ion-card-subtitle>
+          <ion-card-title>Todavía no has guardado tu resumen de inglés</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="empty-description">
+            Para que la inteligencia artificial pueda generar preguntas adaptadas a tus
+            temas de clase, primero debes guardar tus apuntes de gramática y vocabulario
+            en la pantalla de configuración.
+          </p>
+          <ion-button class="primary-btn" (click)="goToSyllabus()">
+            <ion-icon slot="start" name="book-outline"></ion-icon>
+            <span>Configurar Mi Resumen de Inglés</span>
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    } @else {
+      <!-- 6.1. Fotografía de la práctica (Situaciones con personas) -->
+      <ion-card class="surface-card photo-card">
+        <ion-card-header class="card-header-flex">
+          <div>
+            <ion-card-subtitle>Situación cotidiana con personas</ion-card-subtitle>
+            <ion-card-title>Fotografía para describir</ion-card-title>
+          </div>
+          <ion-badge class="pastel-badge">
+            <ion-icon name="people-outline"></ion-icon>
+            <span>Escena con personas</span>
+          </ion-badge>
+        </ion-card-header>
+
+        <ion-card-content>
+          <div class="photo-frame">
+            @if (isLoadingImage) {
+              <div class="photo-loading-overlay">
+                <ion-spinner name="crescent"></ion-spinner>
+                <span>Descargando fotografía...</span>
+              </div>
+            }
+
+            @if (hasImageError) {
+              <div class="photo-error-state">
+                <ion-icon name="image-outline" class="error-photo-icon"></ion-icon>
+                <p>No se pudo cargar la fotografía de práctica.</p>
+                <ion-button
+                  size="small"
+                  class="primary-btn"
+                  (click)="onRequestNewPractice()"
+                  [disabled]="isGeneratingQuestions || isSubmittingAnswer"
+                >
+                  <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                  Obtener otra fotografía
+                </ion-button>
+              </div>
+            } @else if (displayImageUrl) {
+              <ion-img
+                class="practice-image"
+                [src]="displayImageUrl"
+                alt="Fotografía de situación con personas para practicar examen oral en inglés"
+                (ionImgWillLoad)="onImageWillLoad()"
+                (ionImgDidLoad)="onImageDidLoad()"
+                (ionError)="onImageError()"
+              ></ion-img>
+            }
+          </div>
+
+          <p class="photo-caption">
+            ¿Quieres practicar con otra escena? Pulsa <strong>Nueva fotografía</strong>
+            arriba a la derecha.
+          </p>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- 6.2 y 6.4. Tarjeta estilo Examen Oral: TALK ABOUT THE PICTURE -->
+      <ion-card class="surface-card questions-card">
+        <ion-card-header class="card-header-flex">
+          <div>
+            <ion-card-subtitle>TALK ABOUT THE PICTURE</ion-card-subtitle>
+            <ion-card-title>
+              Describe the picture. These questions can be used as a guide:
+            </ion-card-title>
+          </div>
+          <ion-badge class="pastel-badge">5 Guide Questions</ion-badge>
+        </ion-card-header>
+
+        <ion-card-content>
+          @if (isGeneratingQuestions) {
+            <div class="skeleton-questions" aria-busy="true">
+              <p class="generating-caption">
+                <ion-spinner name="dots"></ion-spinner>
+                Generando 5 preguntas sencillas adaptadas a tu resumen y a las personas de
+                la fotografía...
+              </p>
+              <ion-list lines="none" class="questions-list">
+                @for (item of skeletonItems; track item) {
+                  <ion-item class="question-item skeleton-item">
+                    <div class="question-number">{{ item }}</div>
+                    <ion-label>
+                      <ion-skeleton-text
+                        [animated]="true"
+                        style="width: 88%; height: 16px; border-radius: 6px"
+                      ></ion-skeleton-text>
+                      <ion-skeleton-text
+                        [animated]="true"
+                        style="width: 55%; height: 14px; margin-top: 6px; border-radius: 6px"
+                      ></ion-skeleton-text>
+                    </ion-label>
+                  </ion-item>
+                }
+              </ion-list>
+            </div>
+          } @else if (questionsError) {
+            <div class="alert-banner alert-error" role="alert">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>{{ questionsError }}</span>
+            </div>
+            <div class="retry-row">
+              <ion-button
+                size="small"
+                class="primary-btn"
+                (click)="retryGenerateQuestions()"
+              >
+                <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                Reintentar preguntas
+              </ion-button>
+              <ion-button
+                size="small"
+                fill="outline"
+                class="secondary-btn"
+                (click)="onRequestNewPractice()"
+              >
+                Probar con otra fotografía
+              </ion-button>
+            </div>
+          } @else {
+            <ion-list lines="none" class="questions-list">
+              @for (question of questions; track $index) {
+                <ion-item class="question-item">
+                  <div class="question-number" slot="start">{{ $index + 1 }}</div>
+                  <ion-label class="ion-text-wrap question-text">
+                    {{ question }}
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
+          }
+        </ion-card-content>
+      </ion-card>
+
+      <!-- 6.5. Respuesta del estudiante (Voz + Texto) -->
+      <ion-card class="surface-card answer-card">
+        <ion-card-header class="card-header-flex">
+          <div>
+            <ion-card-subtitle>Respuesta oral o escrita</ion-card-subtitle>
+            <ion-card-title>Your answer</ion-card-title>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          <p class="answer-helper">
+            Puedes <strong>hablar en inglés usando el micrófono</strong> de tu celular o
+            computadora (se transcribirá automáticamente abajo) o
+            <strong>escribir directamente</strong> tu respuesta cubriendo las preguntas.
+          </p>
+
+          <!-- Panel de grabación de voz para práctica oral -->
+          <div
+            class="voice-recorder-box"
+            [class.recording-active]="isRecordingAudio"
+            [class.transcribing-active]="isTranscribingAudio"
+          >
+            <div class="voice-controls-row">
+              <ion-button
+                [class]="isRecordingAudio ? 'stop-voice-btn' : 'record-voice-btn'"
+                (click)="toggleVoiceRecording()"
+                [disabled]="
+                  isGeneratingQuestions ||
+                  isSubmittingAnswer ||
+                  isTranscribingAudio ||
+                  questions.length === 0
+                "
+              >
+                @if (isRecordingAudio) {
+                  <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
+                  <span>Detener y transcribir ({{ formattedRecordingTime }})</span>
+                } @else {
+                  <ion-icon slot="start" name="mic-outline"></ion-icon>
+                  <span>Responder hablando (Grabar voz)</span>
+                }
+              </ion-button>
+
+              @if (isRecordingAudio) {
+                <div class="recording-indicator" role="status">
+                  <span class="pulse-dot"></span>
+                  <span>Escuchando en inglés... Habla con naturalidad.</span>
+                </div>
+              }
+
+              @if (isTranscribingAudio) {
+                <div class="transcribing-indicator" role="status">
+                  <ion-spinner name="crescent"></ion-spinner>
+                  <span>Transcribiendo tu respuesta oral en inglés...</span>
+                </div>
+              }
+            </div>
+
+            <!-- Reproductor para que el estudiante pueda escucharse -->
+            @if (recordedAudioUrl && !isRecordingAudio) {
+              <div class="audio-playback-row">
+                <ion-icon name="volume-high-outline" class="audio-icon"></ion-icon>
+                <audio [src]="recordedAudioUrl" controls class="native-audio"></audio>
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  color="medium"
+                  (click)="clearAudioRecording()"
+                  title="Quitar grabación de audio"
+                >
+                  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                </ion-button>
+              </div>
+            }
+
+            @if (voiceError) {
+              <div class="alert-banner alert-error" role="alert">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                <span>{{ voiceError }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="textarea-container">
+            <ion-textarea
+              class="answer-textarea"
+              aria-label="Your answer in English"
+              placeholder="Write your answer in English here or use the microphone button above to speak... (e.g., In this picture, I can see two people...)"
+              [rows]="7"
+              [autoGrow]="true"
+              [ngModel]="userAnswer"
+              (ngModelChange)="onAnswerChange($event)"
+              [disabled]="
+                isGeneratingQuestions ||
+                isSubmittingAnswer ||
+                isRecordingAudio ||
+                isTranscribingAudio
+              "
+            ></ion-textarea>
+          </div>
+
+          @if (answerError) {
+            <div class="alert-banner alert-error" role="alert">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>{{ answerError }}</span>
+            </div>
+          }
+
+          @if (isSubmittingAnswer) {
+            <div class="evaluating-banner" role="status">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>
+                El profesor IA está evaluando tu respuesta según tus apuntes. Conservando
+                la imagen, las preguntas y tu respuesta...
+              </span>
+            </div>
+          }
+
+          <div class="submit-row">
+            <ion-button
+              class="primary-btn submit-btn"
+              (click)="onSubmitAnswer()"
+              [disabled]="
+                isGeneratingQuestions ||
+                isSubmittingAnswer ||
+                isRecordingAudio ||
+                isTranscribingAudio ||
+                questions.length === 0 ||
+                !userAnswer.trim()
+              "
+            >
+              @if (isSubmittingAnswer) {
+                <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
+                <span>Evaluando respuesta...</span>
+              } @else {
+                <ion-icon slot="start" name="send-outline"></ion-icon>
+                <span>Enviar respuesta</span>
+              }
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+  </div>
+</ion-content>

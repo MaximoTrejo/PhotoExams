@@ -1,0 +1,250 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="app-toolbar">
+    <ion-title class="toolbar-title">
+      <div class="brand-wrap">
+        <ion-icon name="book-outline" class="brand-icon"></ion-icon>
+        <span>PhotoExams</span>
+      </div>
+    </ion-title>
+
+    <ion-buttons slot="end" class="nav-buttons">
+      <ion-button routerLink="/syllabus" class="nav-btn active-nav" fill="solid" size="small">
+        Resumen
+      </ion-button>
+      <ion-button routerLink="/practice" class="nav-btn" fill="clear" size="small">
+        Práctica
+      </ion-button>
+      <ion-button routerLink="/feedback" class="nav-btn" fill="clear" size="small">
+        Corrección
+      </ion-button>
+      <ion-button
+        fill="clear"
+        size="small"
+        class="account-btn"
+        (click)="toggleAuthPanel()"
+        title="Cuenta de estudiante"
+      >
+        <ion-icon slot="icon-only" name="person-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-content">
+  <div class="main-container">
+    <!-- Encabezado de página -->
+    <section class="hero-header">
+      <div class="hero-badge">
+        <ion-icon name="sparkles-outline"></ion-icon>
+        <span>Configuración de estudio</span>
+      </div>
+      <h1 class="page-title">Mi resumen de inglés</h1>
+      <p class="page-subtitle">
+        Pega o escribe aquí tus apuntes de gramática y vocabulario. La inteligencia
+        artificial utilizará este resumen para formular preguntas sencillas de examen oral y
+        evaluar tus respuestas.
+      </p>
+    </section>
+
+    <!-- Panel de sesión / autenticación de Supabase -->
+    @if (showAuthForm || !photoExamService.isAuthenticated()) {
+      <ion-card class="surface-card auth-card">
+        <ion-card-header>
+          <ion-card-subtitle>Seguridad Supabase (RLS)</ion-card-subtitle>
+          <ion-card-title>Cuenta del estudiante</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          @if (photoExamService.currentUser(); as user) {
+            <div class="session-info">
+              <p>
+                <strong>Sesión activa:</strong>
+                {{ user.email ? user.email : 'Estudiante invitado (Sesión anónima autenticada)' }}
+              </p>
+              <ion-button
+                fill="outline"
+                color="medium"
+                size="small"
+                (click)="onSignOut()"
+              >
+                <ion-icon slot="start" name="log-out-outline"></ion-icon>
+                Cerrar sesión
+              </ion-button>
+            </div>
+          } @else {
+            <p class="auth-helper">
+              Inicia sesión o regístrate con tu correo para guardar tu resumen de forma
+              privada y segura en Supabase.
+            </p>
+          }
+
+          <div class="auth-inputs">
+            <ion-item lines="none" class="custom-input-item">
+              <ion-input
+                label="Correo electrónico"
+                labelPlacement="stacked"
+                type="email"
+                placeholder="estudiante@escuela.edu"
+                [(ngModel)]="authEmail"
+                [disabled]="isAuthLoading"
+              ></ion-input>
+            </ion-item>
+
+            <ion-item lines="none" class="custom-input-item">
+              <ion-input
+                label="Contraseña"
+                labelPlacement="stacked"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                [(ngModel)]="authPassword"
+                [disabled]="isAuthLoading"
+              ></ion-input>
+            </ion-item>
+          </div>
+
+          @if (authErrorMessage) {
+            <div class="alert-banner alert-error">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>{{ authErrorMessage }}</span>
+            </div>
+          }
+
+          @if (authSuccessMessage) {
+            <div class="alert-banner alert-success">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              <span>{{ authSuccessMessage }}</span>
+            </div>
+          }
+
+          <div class="auth-actions">
+            <ion-button
+              class="primary-btn"
+              (click)="onSignIn()"
+              [disabled]="isAuthLoading"
+            >
+              @if (isAuthLoading) {
+                <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
+              } @else {
+                <ion-icon slot="start" name="log-in-outline"></ion-icon>
+              }
+              Iniciar sesión
+            </ion-button>
+
+            <ion-button
+              fill="outline"
+              class="secondary-btn"
+              (click)="onSignUp()"
+              [disabled]="isAuthLoading"
+            >
+              <ion-icon slot="start" name="person-add-outline"></ion-icon>
+              Crear cuenta
+            </ion-button>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- Tarjeta principal del resumen -->
+    <ion-card class="surface-card syllabus-card">
+      <ion-card-header class="card-header-flex">
+        <div>
+          <ion-card-subtitle>Apuntes de clase</ion-card-subtitle>
+          <ion-card-title>Temas de gramática y vocabulario</ion-card-title>
+        </div>
+
+        <div class="header-meta">
+          @if (lastUpdatedAt) {
+            <ion-badge class="pastel-badge">
+              Actualizado: {{ lastUpdatedAt | date: 'dd/MM/yyyy HH:mm' }}
+            </ion-badge>
+          }
+          <ion-button
+            fill="clear"
+            size="small"
+            class="sample-btn"
+            (click)="loadSampleNotes()"
+            [disabled]="isLoading || isSaving"
+          >
+            <ion-icon slot="start" name="document-text-outline"></ion-icon>
+            Cargar ejemplo
+          </ion-button>
+        </div>
+      </ion-card-header>
+
+      <ion-card-content>
+        @if (isLoading) {
+          <div class="skeleton-wrapper" aria-busy="true">
+            <p class="loading-caption">Recuperando tu resumen guardado en Supabase...</p>
+            <ion-skeleton-text [animated]="true" style="width: 90%; height: 18px"></ion-skeleton-text>
+            <ion-skeleton-text [animated]="true" style="width: 100%; height: 18px"></ion-skeleton-text>
+            <ion-skeleton-text [animated]="true" style="width: 82%; height: 18px"></ion-skeleton-text>
+            <ion-skeleton-text [animated]="true" style="width: 95%; height: 18px"></ion-skeleton-text>
+            <ion-skeleton-text [animated]="true" style="width: 75%; height: 18px"></ion-skeleton-text>
+          </div>
+        } @else {
+          <div class="textarea-container">
+            <ion-textarea
+              class="syllabus-textarea"
+              aria-label="Contenido completo de tus apuntes de inglés"
+              placeholder="Ejemplo: Present Continuous (am/is/are + verb-ing), Prepositions of place (in, on, under, next to, behind), Physical appearance (tall, short, curly hair, wearing glasses), Giving directions (turn left, go straight on)..."
+              [rows]="13"
+              [autoGrow]="true"
+              [(ngModel)]="syllabusContent"
+              [disabled]="isSaving"
+            ></ion-textarea>
+          </div>
+
+          <div class="helper-row">
+            <span class="char-counter">
+              {{ syllabusContent.trim().length }} caracteres
+            </span>
+            <span class="helper-tip">
+              Incluye tiempos verbales, preposiciones y listas de vocabulario de tu carpeta.
+            </span>
+          </div>
+        }
+
+        <!-- Mensajes de éxito o error -->
+        @if (errorMessage) {
+          <div class="alert-banner alert-error" role="alert">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
+        }
+
+        @if (statusMessage) {
+          <div class="alert-banner alert-success" role="status">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            <span>{{ statusMessage }}</span>
+          </div>
+        }
+
+        <!-- Botones de acción -->
+        <div class="actions-row">
+          <ion-button
+            class="primary-btn save-btn"
+            (click)="onSaveSyllabus()"
+            [disabled]="isLoading || isSaving || !syllabusContent.trim()"
+          >
+            @if (isSaving) {
+              <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
+              <span>Guardando...</span>
+            } @else {
+              <ion-icon slot="start" name="save-outline"></ion-icon>
+              <span>Guardar Resumen</span>
+            }
+          </ion-button>
+
+          <ion-button
+            fill="outline"
+            class="secondary-btn practice-link-btn"
+            (click)="goToPractice()"
+            [disabled]="isLoading || isSaving"
+          >
+            <ion-icon slot="start" name="camera-outline"></ion-icon>
+            <span>Ir a Practicar</span>
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>
