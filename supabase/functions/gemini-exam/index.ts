@@ -23,6 +23,23 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/**
+ * Elimina cualquier encabezado Data URL (ej. "data:audio/webm;codecs=opus;base64,")
+ * y espacios en blanco para dejar únicamente los bytes Base64 puros que exige Gemini.
+ */
+function stripDataUrlPrefix(raw?: string): string {
+  if (!raw) {
+    return '';
+  }
+  const trimmed = raw.trim();
+  const commaIdx = trimmed.indexOf(',');
+  const withoutHeader =
+    trimmed.startsWith('data:') && commaIdx !== -1
+      ? trimmed.slice(commaIdx + 1)
+      : trimmed.replace(/^data:[^,]+,/, '');
+  return withoutHeader.replace(/\s+/g, '');
+}
+
 interface GenerateQuestionsPayload {
   action: 'generate-questions';
   syllabus: string;
@@ -84,10 +101,10 @@ async function resolveImageInlineData(
   imageMimeType?: string
 ): Promise<{ data: string; mimeType: string } | null> {
   if (imageBase64 && imageBase64.trim().length > 0) {
-    const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+    const cleanBase64 = stripDataUrlPrefix(imageBase64);
     return {
       data: cleanBase64,
-      mimeType: imageMimeType || 'image/jpeg',
+      mimeType: (imageMimeType || 'image/jpeg').split(';')[0].trim(),
     };
   }
 
@@ -319,7 +336,12 @@ async function fetchAvailableFlashModels(apiKey: string): Promise<string[]> {
           (m.name.includes('gemini') || m.name.includes('flash')) &&
           !m.name.includes('embedding') &&
           !m.name.includes('imagen') &&
-          !m.name.includes('tts')
+          !m.name.includes('image') &&
+          !m.name.includes('tts') &&
+          !m.name.includes('computer-use') &&
+          !m.name.includes('robotics') &&
+          !m.name.includes('aqa') &&
+          !m.name.includes('veo')
       )
       .map((m) => String(m.name).replace(/^models\//, ''))
       .sort((a, b) => {
@@ -476,10 +498,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Acción para transcribir respuesta oral hablada desde el celular/navegador
     if (body.action === 'transcribe-audio') {
-      const cleanAudioBase64 = (body.audioBase64 || '').replace(
-        /^data:audio\/[a-zA-Z0-9.+_-]+;base64,/,
-        ''
-      );
+      const cleanAudioBase64 = stripDataUrlPrefix(body.audioBase64);
       if (!cleanAudioBase64) {
         return new Response(
           JSON.stringify({ error: 'No se recibió audio para transcribir.' }),
@@ -622,10 +641,7 @@ IMPORTANT RULES:
     if (body.action === 'evaluate-answer') {
       const questions = Array.isArray(body.questions) ? body.questions : [];
       const userAnswer = (body.userAnswer || '').trim();
-      const cleanAudioBase64 = (body.audioBase64 || '').replace(
-        /^data:[a-zA-Z0-9/+._-]+;base64,/,
-        ''
-      );
+      const cleanAudioBase64 = stripDataUrlPrefix(body.audioBase64);
       const hasAudio = cleanAudioBase64.length > 0;
 
       if (!userAnswer && !hasAudio) {

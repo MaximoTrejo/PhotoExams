@@ -376,10 +376,10 @@ export class PhotoExamService {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-          const base64Clean = reader.result.replace(
-            /^data:[a-zA-Z0-9/+.-]+;base64,/,
-            ''
-          );
+          const commaIndex = reader.result.indexOf(',');
+          const base64Clean = (
+            commaIndex !== -1 ? reader.result.slice(commaIndex + 1) : reader.result
+          ).replace(/\s+/g, '');
           resolve(base64Clean);
         } else {
           reject(new Error('No se pudo convertir el archivo a Base64.'));
@@ -400,7 +400,7 @@ export class PhotoExamService {
     }
 
     const audioBase64 = await this.blobToBase64(audioBlob);
-    const audioMimeType = audioBlob.type || 'audio/webm';
+    const audioMimeType = (audioBlob.type || 'audio/webm').split(';')[0].trim();
 
     const { data, error } =
       await this.supabase.functions.invoke<TranscribeAudioResponse>(
