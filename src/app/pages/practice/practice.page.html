@@ -256,7 +256,7 @@
           <div
             class="voice-recorder-box"
             [class.recording-active]="isRecordingAudio"
-            [class.transcribing-active]="isTranscribingAudio"
+            [class.transcribing-active]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
           >
             <div class="voice-controls-row">
               <ion-button
@@ -264,23 +264,25 @@
                 (click)="toggleVoiceRecording()"
                 [disabled]="
                   isGeneratingQuestions ||
-                  isSubmittingAnswer ||
+                  isProcessingAudio ||
                   isTranscribingAudio ||
+                  isSubmittingAnswer ||
+                  recordedAudioBlob !== null ||
                   questions.length === 0
                 "
               >
                 @if (isRecordingAudio) {
                   <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
                   <span>Detener grabación ({{ formattedRecordingTime }})</span>
+                } @else if (isProcessingAudio || isTranscribingAudio || isSubmittingAnswer) {
+                  <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
+                  <span>Procesando audio...</span>
+                } @else if (recordedAudioBlob) {
+                  <ion-icon slot="start" name="mic-outline"></ion-icon>
+                  <span>Audio listo para enviar</span>
                 } @else {
                   <ion-icon slot="start" name="mic-outline"></ion-icon>
-                  <span>
-                    {{
-                      recordedAudioBlob
-                        ? 'Volver a grabar audio'
-                        : 'Responder hablando (Grabar voz)'
-                    }}
-                  </span>
+                  <span>Responder hablando (Grabar voz)</span>
                 }
               </ion-button>
 
@@ -291,10 +293,18 @@
                 </div>
               }
 
-              @if (isTranscribingAudio) {
+              @if (isProcessingAudio || isTranscribingAudio || (isSubmittingAnswer && recordedAudioBlob)) {
                 <div class="transcribing-indicator" role="status">
                   <ion-spinner name="crescent"></ion-spinner>
-                  <span>Pasando tu grabación a texto...</span>
+                  <span>
+                    {{
+                      isSubmittingAnswer
+                        ? 'Evaluando tu audio con IA (grabación bloqueada)...'
+                        : isTranscribingAudio
+                          ? 'Transcribiendo tu grabación de audio (grabación bloqueada)...'
+                          : 'Procesando tu grabación de audio, espera un momento...'
+                    }}
+                  </span>
                 </div>
               }
             </div>
@@ -303,8 +313,10 @@
             @if (recordedAudioUrl && !isRecordingAudio) {
               <div class="audio-ready-banner">
                 <span>
-                  ✅ <strong>Audio grabado listo:</strong> ya puedes pulsar directamente
-                  <strong>Enviar respuesta</strong> abajo sin necesidad de escribir.
+                  ✅ <strong>Audio grabado listo:</strong> el botón de grabar quedó
+                  bloqueado para no pisar tu respuesta. Pulsa directamente
+                  <strong>Enviar respuesta</strong> abajo, o bórralo si quieres grabar de
+                  nuevo.
                 </span>
               </div>
 
@@ -316,19 +328,20 @@
                   size="small"
                   class="secondary-btn"
                   (click)="onTranscribeSavedAudio()"
-                  [disabled]="isTranscribingAudio || isSubmittingAnswer"
+                  [disabled]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
                 >
                   <span>Pasar a texto</span>
                 </ion-button>
                 <ion-button
-                  fill="clear"
+                  fill="outline"
                   size="small"
-                  color="medium"
+                  color="danger"
                   (click)="clearAudioRecording()"
-                  [disabled]="isSubmittingAnswer"
-                  title="Quitar grabación de audio"
+                  [disabled]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
+                  title="Borrar grabación para grabar otra"
                 >
-                  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                  <ion-icon slot="start" name="trash-outline"></ion-icon>
+                  <span>Borrar para regrabar</span>
                 </ion-button>
               </div>
             }

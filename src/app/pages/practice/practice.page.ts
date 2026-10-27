@@ -102,6 +102,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
   // Estados de grabación de respuesta oral (micrófono en móvil y escritorio)
   public isRecordingAudio = false;
+  public isProcessingAudio = false;
   public isTranscribingAudio = false;
   public recordingSeconds = 0;
   public recordedAudioBlob: Blob | null = null;
@@ -371,9 +372,11 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   public async startVoiceRecording(): Promise<void> {
     if (
       this.isRecordingAudio ||
+      this.isProcessingAudio ||
       this.isTranscribingAudio ||
       this.isGeneratingQuestions ||
-      this.isSubmittingAnswer
+      this.isSubmittingAnswer ||
+      this.recordedAudioBlob !== null
     ) {
       return;
     }
@@ -408,7 +411,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       };
 
       this.mediaRecorder.onstop = () => {
-        void this.handleRecordingStopped();
+        this.handleRecordingStopped();
       };
 
       this.mediaRecorder.start();
@@ -431,6 +434,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     }
 
     this.isRecordingAudio = false;
+    this.isProcessingAudio = true;
+
     if (this.recordingTimerId) {
       clearInterval(this.recordingTimerId);
       this.recordingTimerId = null;
@@ -438,26 +443,32 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
     if (this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
+    } else {
+      this.isProcessingAudio = false;
     }
 
     this.stopMediaTracks();
   }
 
   private handleRecordingStopped(): void {
-    if (this.audioChunks.length === 0) {
-      return;
-    }
+    try {
+      if (this.audioChunks.length === 0) {
+        return;
+      }
 
-    const mimeType = this.mediaRecorder?.mimeType || 'audio/mp4';
-    const audioBlob = new Blob(this.audioChunks, { type: mimeType });
-    this.recordedAudioBlob = audioBlob;
+      const mimeType = this.mediaRecorder?.mimeType || 'audio/mp4';
+      const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+      this.recordedAudioBlob = audioBlob;
 
-    if (this.recordedAudioUrl) {
-      URL.revokeObjectURL(this.recordedAudioUrl);
+      if (this.recordedAudioUrl) {
+        URL.revokeObjectURL(this.recordedAudioUrl);
+      }
+      this.recordedAudioUrl = URL.createObjectURL(audioBlob);
+      this.voiceError = null;
+      this.answerError = null;
+    } finally {
+      this.isProcessingAudio = false;
     }
-    this.recordedAudioUrl = URL.createObjectURL(audioBlob);
-    this.voiceError = null;
-    this.answerError = null;
   }
 
   /**
@@ -542,6 +553,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       }
     }
     this.isRecordingAudio = false;
+    this.isProcessingAudio = false;
     this.stopMediaTracks();
   }
 
