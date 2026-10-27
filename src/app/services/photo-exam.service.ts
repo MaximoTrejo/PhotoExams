@@ -495,7 +495,8 @@ export class PhotoExamService {
   }
 
   /**
-   * Solicita a Gemini la corrección constructiva de la respuesta del estudiante.
+   * Solicita a Gemini la corrección constructiva de la respuesta del estudiante
+   * (acepta respuesta escrita, grabación de voz directa, o ambas en un solo paso).
    */
   public async evaluateAnswer(params: {
     syllabusContent: string;
@@ -504,10 +505,21 @@ export class PhotoExamService {
     userAnswer: string;
     imageBase64?: string;
     imageMimeType?: string;
+    audioBlob?: Blob | null;
   }): Promise<AiFeedback> {
     const cleanAnswer = params.userAnswer.trim();
-    if (!cleanAnswer) {
+    const hasAudio = Boolean(params.audioBlob && params.audioBlob.size > 0);
+
+    if (!cleanAnswer && !hasAudio) {
       throw new Error('La respuesta del estudiante está vacía.');
+    }
+
+    let audioBase64: string | undefined;
+    let audioMimeType: string | undefined;
+
+    if (params.audioBlob && params.audioBlob.size > 0) {
+      audioBase64 = await this.blobToBase64(params.audioBlob);
+      audioMimeType = (params.audioBlob.type || 'audio/mp4').split(';')[0].trim();
     }
 
     const { data, error } =
@@ -522,6 +534,8 @@ export class PhotoExamService {
             userAnswer: cleanAnswer,
             imageBase64: params.imageBase64,
             imageMimeType: params.imageMimeType,
+            audioBase64,
+            audioMimeType,
           },
         }
       );
@@ -733,6 +747,7 @@ export class PhotoExamService {
       errores,
       aciertos,
       sugerencias,
+      transcript: raw.transcript?.trim(),
       rawMarkdown: raw.rawMarkdown,
     };
   }

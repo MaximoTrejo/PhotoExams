@@ -36,9 +36,11 @@ interface EvaluateAnswerPayload {
   syllabus: string;
   imageUrl: string;
   questions: string[];
-  userAnswer: string;
+  userAnswer?: string;
   imageBase64?: string;
   imageMimeType?: string;
+  audioBase64?: string;
+  audioMimeType?: string;
 }
 
 interface TranscribeAudioPayload {
@@ -69,6 +71,7 @@ interface StructuredFeedbackResponse {
   errores: FeedbackErrorItem[];
   aciertos: string[];
   sugerencias: FeedbackSuggestionItem[];
+  transcript?: string;
   rawMarkdown?: string;
 }
 
@@ -619,8 +622,13 @@ IMPORTANT RULES:
     if (body.action === 'evaluate-answer') {
       const questions = Array.isArray(body.questions) ? body.questions : [];
       const userAnswer = (body.userAnswer || '').trim();
+      const cleanAudioBase64 = (body.audioBase64 || '').replace(
+        /^data:[a-zA-Z0-9/+._-]+;base64,/,
+        ''
+      );
+      const hasAudio = cleanAudioBase64.length > 0;
 
-      if (!userAnswer) {
+      if (!userAnswer && !hasAudio) {
         return new Response(
           JSON.stringify({ error: 'La respuesta del estudiante está vacía.' }),
           {
@@ -630,9 +638,15 @@ IMPORTANT RULES:
         );
       }
 
+      const answerContextText = hasAudio
+        ? userAnswer
+          ? `${userAnswer}\n(Además, el estudiante adjuntó su respuesta oral en el archivo de audio incluido en esta solicitud. Escucha el audio, transcríbelo fielmente en la propiedad "transcript" y evalúa tanto lo hablado como lo escrito).`
+          : `(El estudiante respondió de forma oral mediante el archivo de audio adjunto en esta solicitud. Primero transcribe exactamente lo que dijo en inglés dentro de la propiedad "transcript" sin autocorregir su gramática, y luego evalúa su respuesta oral siguiendo todas las instrucciones).`
+        : userAnswer;
+
       const prompt = buildEvaluationPrompt(
         questions,
-        userAnswer,
+        answerContextText,
         syllabus,
         imageContext
       );
@@ -647,9 +661,20 @@ IMPORTANT RULES:
         });
       }
 
+      if (hasAudio) {
+        const rawAudioMime = (body.audioMimeType || 'audio/mp4').split(';')[0].trim();
+        parts.push({
+          inlineData: {
+            mimeType: rawAudioMime || 'audio/mp4',
+            data: cleanAudioBase64,
+          },
+        });
+      }
+
       const evaluationSchema = {
         type: 'OBJECT',
         properties: {
+          transcript: { type: 'STRING' },
           hasErrors: { type: 'BOOLEAN' },
           noErrorsMessage: { type: 'STRING' },
           errores: {
@@ -680,7 +705,14 @@ IMPORTANT RULES:
             },
           },
         },
-        required: ['hasErrors', 'noErrorsMessage', 'errores', 'aciertos', 'sugerencias'],
+        required: [
+          'transcript',
+          'hasErrors',
+          'noErrorsMessage',
+          'errores',
+          'aciertos',
+          'sugerencias',
+        ],
       };
 
       const { text, modelUsed } = await callGeminiWithFallback(
@@ -729,6 +761,7 @@ IMPORTANT RULES:
         errores: Array.isArray(parsed.errores) ? parsed.errores : [],
         aciertos: Array.isArray(parsed.aciertos) ? parsed.aciertos : [],
         sugerencias: Array.isArray(parsed.sugerencias) ? parsed.sugerencias : [],
+        transcript: (parsed.transcript || userAnswer || '').trim(),
         rawMarkdown,
       };
 

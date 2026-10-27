@@ -247,9 +247,9 @@
 
         <ion-card-content>
           <p class="answer-helper">
-            Puedes <strong>hablar en inglés usando el micrófono</strong> de tu celular o
-            computadora (se transcribirá automáticamente abajo) o
-            <strong>escribir directamente</strong> tu respuesta cubriendo las preguntas.
+            Puedes <strong>grabar tu voz en inglés y pulsar directamente "Enviar respuesta"</strong>
+            (el profesor IA escuchará tu audio y te dará la corrección directamente), o
+            bien <strong>escribir tu respuesta</strong> abajo.
           </p>
 
           <!-- Panel de grabación de voz para práctica oral -->
@@ -271,38 +271,61 @@
               >
                 @if (isRecordingAudio) {
                   <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
-                  <span>Detener y transcribir ({{ formattedRecordingTime }})</span>
+                  <span>Detener grabación ({{ formattedRecordingTime }})</span>
                 } @else {
                   <ion-icon slot="start" name="mic-outline"></ion-icon>
-                  <span>Responder hablando (Grabar voz)</span>
+                  <span>
+                    {{
+                      recordedAudioBlob
+                        ? 'Volver a grabar audio'
+                        : 'Responder hablando (Grabar voz)'
+                    }}
+                  </span>
                 }
               </ion-button>
 
               @if (isRecordingAudio) {
                 <div class="recording-indicator" role="status">
                   <span class="pulse-dot"></span>
-                  <span>Escuchando en inglés... Habla con naturalidad.</span>
+                  <span>Grabando en inglés... Pulsa "Detener grabación" al terminar.</span>
                 </div>
               }
 
               @if (isTranscribingAudio) {
                 <div class="transcribing-indicator" role="status">
                   <ion-spinner name="crescent"></ion-spinner>
-                  <span>Transcribiendo tu respuesta oral en inglés...</span>
+                  <span>Pasando tu grabación a texto...</span>
                 </div>
               }
             </div>
 
-            <!-- Reproductor para que el estudiante pueda escucharse -->
+            <!-- Reproductor para que el estudiante pueda escucharse o enviar directo -->
             @if (recordedAudioUrl && !isRecordingAudio) {
+              <div class="audio-ready-banner">
+                <span>
+                  ✅ <strong>Audio grabado listo:</strong> ya puedes pulsar directamente
+                  <strong>Enviar respuesta</strong> abajo sin necesidad de escribir.
+                </span>
+              </div>
+
               <div class="audio-playback-row">
                 <ion-icon name="volume-high-outline" class="audio-icon"></ion-icon>
                 <audio [src]="recordedAudioUrl" controls class="native-audio"></audio>
+                <ion-button
+                  fill="outline"
+                  size="small"
+                  class="secondary-btn"
+                  (click)="onTranscribeSavedAudio()"
+                  [disabled]="isTranscribingAudio || isSubmittingAnswer"
+                >
+                  <span>Pasar a texto</span>
+                </ion-button>
                 <ion-button
                   fill="clear"
                   size="small"
                   color="medium"
                   (click)="clearAudioRecording()"
+                  [disabled]="isSubmittingAnswer"
                   title="Quitar grabación de audio"
                 >
                   <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
@@ -322,8 +345,8 @@
             <ion-textarea
               class="answer-textarea"
               aria-label="Your answer in English"
-              placeholder="Write your answer in English here or use the microphone button above to speak... (e.g., In this picture, I can see two people...)"
-              [rows]="7"
+              placeholder="Opcional si ya grabaste un audio: también puedes escribir tu respuesta en inglés aquí..."
+              [rows]="6"
               [autoGrow]="true"
               [ngModel]="userAnswer"
               (ngModelChange)="onAnswerChange($event)"
@@ -347,8 +370,7 @@
             <div class="evaluating-banner" role="status">
               <ion-spinner name="crescent"></ion-spinner>
               <span>
-                El profesor IA está evaluando tu respuesta según tus apuntes. Conservando
-                la imagen, las preguntas y tu respuesta...
+                El profesor IA está escuchando/evaluando tu respuesta según tus apuntes...
               </span>
             </div>
           }
@@ -363,7 +385,7 @@
                 isRecordingAudio ||
                 isTranscribingAudio ||
                 questions.length === 0 ||
-                !userAnswer.trim()
+                (!userAnswer.trim() && !recordedAudioBlob)
               "
             >
               @if (isSubmittingAnswer) {

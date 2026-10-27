@@ -33,6 +33,7 @@ export interface AiFeedback {
   errores: FeedbackErrorItem[];
   aciertos: string[];
   sugerencias: FeedbackSuggestionItem[];
+  transcript?: string;
   rawMarkdown?: string;
 }
 

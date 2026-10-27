@@ -104,6 +104,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   public isRecordingAudio = false;
   public isTranscribingAudio = false;
   public recordingSeconds = 0;
+  public recordedAudioBlob: Blob | null = null;
   public recordedAudioUrl: string | null = null;
   public voiceError: string | null = null;
 
@@ -223,7 +224,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       return;
     }
 
-    if (this.userAnswer.trim().length > 0) {
+    if (this.userAnswer.trim().length > 0 || this.recordedAudioBlob !== null) {
       const alert = await this.alertController.create({
         header: '¿Comenzar nueva práctica?',
         message:
@@ -391,9 +392,14 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       this.audioChunks = [];
 
       const supportedMimeType = this.getSupportedAudioMimeType();
-      this.mediaRecorder = supportedMimeType
-        ? new MediaRecorder(this.mediaStream, { mimeType: supportedMimeType })
-        : new MediaRecorder(this.mediaStream);
+      try {
+        this.mediaRecorder = supportedMimeType
+          ? new MediaRecorder(this.mediaStream, { mimeType: supportedMimeType })
+          : new MediaRecorder(this.mediaStream);
+      } catch {
+        // Fallback seguro para iOS WebKit (Safari / Chrome en iPhone) sin forzar mimeType
+        this.mediaRecorder = new MediaRecorder(this.mediaStream);
+      }
 
       this.mediaRecorder.ondataavailable = (event: BlobEvent) => {
         if (event.data && event.data.size > 0) {
@@ -414,7 +420,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       }, 1000);
     } catch {
       this.voiceError =
-        'No se pudo acceder al micrófono. Permite el permiso de micrófono en tu navegador móvil e inténtalo de nuevo.';
+        'No se pudo acceder al micrófono. Verifica en los Ajustes de tu iPhone (Configuración -> Chrome -> Micrófono) que el permiso esté activado.';
       this.cleanupMicrophoneResources();
     }
   }
@@ -437,24 +443,37 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.stopMediaTracks();
   }
 
-  private async handleRecordingStopped(): Promise<void> {
+  private handleRecordingStopped(): void {
     if (this.audioChunks.length === 0) {
       return;
     }
 
-    const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+    const mimeType = this.mediaRecorder?.mimeType || 'audio/mp4';
     const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+    this.recordedAudioBlob = audioBlob;
 
     if (this.recordedAudioUrl) {
       URL.revokeObjectURL(this.recordedAudioUrl);
     }
     this.recordedAudioUrl = URL.createObjectURL(audioBlob);
+    this.voiceError = null;
+    this.answerError = null;
+  }
+
+  /**
+   * Opción secundaria por si el estudiante desea transcribir el audio grabado al cuadro
+   * de texto antes de enviar, conservando siempre el audio para reintentar si falla.
+   */
+  public async onTranscribeSavedAudio(): Promise<void> {
+    if (!this.recordedAudioBlob || this.isTranscribingAudio) {
+      return;
+    }
 
     this.isTranscribingAudio = true;
     this.voiceError = null;
 
     try {
-      const transcript = await this.photoExamService.transcribeAudio(audioBlob);
+      const transcript = await this.photoExamService.transcribeAudio(this.recordedAudioBlob);
       const currentText = this.userAnswer.trim();
       const updatedText = currentText ? `${currentText} ${transcript}` : transcript;
       this.onAnswerChange(updatedText);
@@ -462,7 +481,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       this.voiceError =
         error instanceof Error
           ? error.message
-          : 'No se pudo transcribir el audio. Intenta hablar un poco más cerca del micrófono.';
+          : 'No se pudo transcribir a texto, pero puedes pulsar directamente "Enviar respuesta" para mandar tu audio.';
     } finally {
       this.isTranscribingAudio = false;
     }
@@ -473,6 +492,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       URL.revokeObjectURL(this.recordedAudioUrl);
       this.recordedAudioUrl = null;
     }
+    this.recordedAudioBlob = null;
     this.audioChunks = [];
   }
 
@@ -564,10 +584,11 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
     this.answerError = null;
     const trimmedAnswer = this.userAnswer.trim();
+    const hasAudio = this.recordedAudioBlob !== null && this.recordedAudioBlob.size > 0;
 
-    if (!trimmedAnswer) {
+    if (!trimmedAnswer && !hasAudio) {
       this.answerError =
-        'Tu respuesta está vacía. Puedes hablar con el micrófono o escribir tu respuesta en inglés antes de enviar.';
+        'Tu respuesta está vacía. Puedes grabar un audio con el micrófono o escribir tu respuesta en inglés antes de enviar.';
       return;
     }
 
@@ -583,7 +604,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageBase64: this.imageBase64,
         imageMimeType: this.imageMimeType,
         questions: [...this.questions],
-        userAnswer: trimmedAnswer,
+        userAnswer: trimmedAnswer || '[Respuesta oral en audio]',
         feedback: null,
         savedPracticeId: null,
         savedCreatedAt: null,
@@ -596,10 +617,18 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         userAnswer: trimmedAnswer,
         imageBase64: this.imageBase64,
         imageMimeType: this.imageMimeType,
+        audioBlob: this.recordedAudioBlob,
       });
 
+      const finalAnswerText =
+        feedback.transcript?.trim() ||
+        trimmedAnswer ||
+        '[Respuesta oral evaluada por audio]';
+
+      this.userAnswer = finalAnswerText;
+
       this.photoExamService.updateActiveSession({
-        userAnswer: trimmedAnswer,
+        userAnswer: finalAnswerText,
         feedback,
       });
 
@@ -608,7 +637,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       this.answerError =
         error instanceof Error
           ? error.message
-          : 'No se pudo evaluar tu respuesta en este momento. Por favor, inténtalo de nuevo.';
+          : 'No se pudo evaluar tu respuesta en este momento. Tu audio o texto sigue guardado: pulsa "Enviar respuesta" para reintentar.';
     } finally {
       this.isSubmittingAnswer = false;
     }
