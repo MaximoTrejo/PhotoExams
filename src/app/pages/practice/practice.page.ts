@@ -277,16 +277,12 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.imageMimeType = undefined;
 
     try {
-      const preloaded = await this.photoExamService.preloadPracticeImage(randomSituationUrl);
-      this.displayImageUrl = preloaded.resolvedUrl;
-      this.imageBase64 = preloaded.base64;
-      this.imageMimeType = preloaded.mimeType;
-
+      // No esperamos a descargar y convertir la foto en el celular antes de pedir las preguntas:
+      // el navegador muestra la foto en paralelo mientras el servidor de Supabase descarga
+      // una versión liviana (25 KB) a velocidad de datacenter y genera las 5 preguntas.
       const generatedQuestions = await this.photoExamService.generateQuestions(
         this.syllabusContent,
-        this.displayImageUrl,
-        this.imageBase64,
-        this.imageMimeType
+        this.displayImageUrl
       );
 
       this.questions = generatedQuestions;
@@ -296,8 +292,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         syllabusContent: this.syllabusContent,
         imageUrl: this.imageUrl,
         resolvedImageUrl: this.displayImageUrl,
-        imageBase64: this.imageBase64,
-        imageMimeType: this.imageMimeType,
         questions: this.questions,
         userAnswer: '',
         feedback: null,
@@ -397,10 +391,13 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       const supportedMimeType = this.getSupportedAudioMimeType();
       try {
         this.mediaRecorder = supportedMimeType
-          ? new MediaRecorder(this.mediaStream, { mimeType: supportedMimeType })
-          : new MediaRecorder(this.mediaStream);
+          ? new MediaRecorder(this.mediaStream, {
+              mimeType: supportedMimeType,
+              audioBitsPerSecond: 32000,
+            })
+          : new MediaRecorder(this.mediaStream, { audioBitsPerSecond: 32000 });
       } catch {
-        // Fallback seguro para iOS WebKit (Safari / Chrome en iPhone) sin forzar mimeType
+        // Fallback seguro para iOS WebKit (Safari / Chrome en iPhone) sin forzar opciones
         this.mediaRecorder = new MediaRecorder(this.mediaStream);
       }
 
@@ -627,8 +624,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageUrl: this.displayImageUrl || this.imageUrl,
         questions: this.questions,
         userAnswer: trimmedAnswer,
-        imageBase64: this.imageBase64,
-        imageMimeType: this.imageMimeType,
         audioBlob: this.recordedAudioBlob,
       });
 

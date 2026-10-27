@@ -69,6 +69,11 @@ export class PhotoExamService {
    * en Supabase para cumplir con RLS.
    */
   public async ensureAuthenticatedUser(): Promise<AuthUserState | null> {
+    const existing = this.authUserSignal();
+    if (existing) {
+      return existing;
+    }
+
     if (this.authInitPromise) {
       return this.authInitPromise;
     }
@@ -200,8 +205,14 @@ export class PhotoExamService {
 
   /**
    * Obtiene el resumen de gramática y vocabulario guardado por el estudiante.
+   * Si ya está en memoria y no se fuerza recarga, lo devuelve al instante sin esperar red.
    */
-  public async getSyllabus(): Promise<SyllabusRecord | null> {
+  public async getSyllabus(forceRefresh = false): Promise<SyllabusRecord | null> {
+    const cached = this.syllabusSignal();
+    if (!forceRefresh && cached && cached.content.trim().length > 0) {
+      return cached;
+    }
+
     const user = await this.ensureAuthenticatedUser();
     if (!user) {
       throw new Error(
@@ -325,7 +336,8 @@ export class PhotoExamService {
 
   /**
    * Selecciona aleatoriamente una fotografía que siempre incluye 1, 2 o un grupo
-   * de personas en situaciones cotidianas de examen oral, sin repetir la anterior.
+   * de personas en situaciones cotidianas de examen oral, sin repetir la anterior
+   * y permitiendo que el navegador aproveche la caché de CDN.
    */
   public generateRandomImageUrl(): string {
     const total = this.peopleSituationPool.length;
@@ -334,9 +346,7 @@ export class PhotoExamService {
       index = (index + 1) % total;
     }
     this.lastRandomSeed = index;
-    const baseUrl = this.peopleSituationPool[index];
-    const separator = baseUrl.includes('?') ? '&' : '?';
-    return `${baseUrl}${separator}random=${Date.now()}`;
+    return this.peopleSituationPool[index];
   }
 
   /**
