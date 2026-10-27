@@ -1,4 +1,9 @@
-import { AppEnvironment } from './environment';
+export interface AppEnvironment {
+  production: boolean;
+  supabaseUrl: string;
+  supabasePublishableKey: string;
+  geminiEdgeFunctionName: string;
+}
 
 /**
  * Configuración de entorno de producción para Angular.
