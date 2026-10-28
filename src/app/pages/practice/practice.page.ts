@@ -44,7 +44,13 @@ import {
   volumeHighOutline,
   trashOutline,
   peopleOutline,
+  expandOutline,
+  closeOutline,
+  gridOutline,
+  listOutline,
+  bulbOutline,
 } from 'ionicons/icons';
+import { VocabularyItem } from '../../models/photo-exam.models';
 import { PhotoExamService } from '../../services/photo-exam.service';
 
 @Component({
@@ -92,7 +98,14 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   public imageMimeType?: string;
 
   public questions: string[] = [];
+  public vocabulary: VocabularyItem[] = [];
+  public selectedVocabIndex = 0;
   public userAnswer = '';
+
+  // Modo de visualización: 'compact' (sin scroll + modo tarjeta al girar el celular) o 'classic' (vista original grande)
+  public viewMode: 'compact' | 'classic' = 'compact';
+  public isPhotoExpanded = false;
+  public showCompactTextInput = false;
 
   public isCheckingSyllabus = false;
   public isLoadingImage = false;
@@ -137,7 +150,28 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       volumeHighOutline,
       trashOutline,
       peopleOutline,
+      expandOutline,
+      closeOutline,
+      gridOutline,
+      listOutline,
+      bulbOutline,
     });
+  }
+
+  public selectVocab(index: number): void {
+    this.selectedVocabIndex = index;
+  }
+
+  public setViewMode(mode: 'compact' | 'classic'): void {
+    this.viewMode = mode;
+  }
+
+  public togglePhotoExpanded(): void {
+    this.isPhotoExpanded = !this.isPhotoExpanded;
+  }
+
+  public toggleCompactTextInput(): void {
+    this.showCompactTextInput = !this.showCompactTextInput;
   }
 
   public ngOnInit(): void {
@@ -199,6 +233,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         this.imageBase64 = existingSession.imageBase64;
         this.imageMimeType = existingSession.imageMimeType;
         this.questions = [...existingSession.questions];
+        this.vocabulary = existingSession.vocabulary ? [...existingSession.vocabulary] : [];
+        this.selectedVocabIndex = 0;
         this.userAnswer = existingSession.userAnswer;
         this.isLoadingImage = false;
         this.hasImageError = false;
@@ -268,6 +304,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.isLoadingImage = true;
     this.isGeneratingQuestions = true;
     this.questions = [];
+    this.vocabulary = [];
+    this.selectedVocabIndex = 0;
     this.userAnswer = '';
 
     const randomSituationUrl = this.photoExamService.generateRandomImageUrl();
@@ -279,13 +317,15 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     try {
       // No esperamos a descargar y convertir la foto en el celular antes de pedir las preguntas:
       // el navegador muestra la foto en paralelo mientras el servidor de Supabase descarga
-      // una versión liviana (25 KB) a velocidad de datacenter y genera las 5 preguntas.
-      const generatedQuestions = await this.photoExamService.generateQuestions(
+      // una versión liviana (25 KB) a velocidad de datacenter y genera las 5 preguntas + 3 palabras.
+      const generated = await this.photoExamService.generateQuestions(
         this.syllabusContent,
         this.displayImageUrl
       );
 
-      this.questions = generatedQuestions;
+      this.questions = generated.questions;
+      this.vocabulary = generated.vocabulary;
+      this.selectedVocabIndex = 0;
 
       this.photoExamService.setActiveSession({
         sessionKey: `practice-${Date.now()}`,
@@ -293,6 +333,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageUrl: this.imageUrl,
         resolvedImageUrl: this.displayImageUrl,
         questions: this.questions,
+        vocabulary: this.vocabulary,
         userAnswer: '',
         feedback: null,
         savedPracticeId: null,
@@ -320,13 +361,15 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.isGeneratingQuestions = true;
 
     try {
-      const generatedQuestions = await this.photoExamService.generateQuestions(
+      const generated = await this.photoExamService.generateQuestions(
         this.syllabusContent,
         this.displayImageUrl,
         this.imageBase64,
         this.imageMimeType
       );
-      this.questions = generatedQuestions;
+      this.questions = generated.questions;
+      this.vocabulary = generated.vocabulary;
+      this.selectedVocabIndex = 0;
 
       this.photoExamService.setActiveSession({
         sessionKey: `practice-${Date.now()}`,
@@ -336,6 +379,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageBase64: this.imageBase64,
         imageMimeType: this.imageMimeType,
         questions: this.questions,
+        vocabulary: this.vocabulary,
         userAnswer: this.userAnswer,
         feedback: null,
         savedPracticeId: null,
@@ -613,6 +657,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageBase64: this.imageBase64,
         imageMimeType: this.imageMimeType,
         questions: [...this.questions],
+        vocabulary: [...this.vocabulary],
         userAnswer: trimmedAnswer || '[Respuesta oral en audio]',
         feedback: null,
         savedPracticeId: null,

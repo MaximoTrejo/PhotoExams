@@ -157,82 +157,34 @@ async function resolveImageInlineData(
 }
 
 /**
- * Construye el prompt exacto de la sección 6.3 para generar 5 preguntas.
+ * Construye el prompt exacto de la sección 6.3 para generar 5 preguntas + 3 palabras de vocabulario.
  */
 function buildQuestionsPrompt(syllabus: string, imageContext: string): string {
   return `Actúa como un profesor de inglés que prepara a un estudiante para un examen oral escolar basado en la descripción de fotografías.
 
-Tu objetivo es generar exactamente cinco preguntas sencillas en inglés para que el estudiante practique los temas de gramática y vocabulario incluidos en su resumen.
+Tu objetivo es generar:
+A) Exactamente cinco preguntas sencillas en inglés ("questions") para que el estudiante practique los temas de gramática y vocabulario incluidos en su resumen.
+B) Exactamente tres palabras o expresiones cortas de vocabulario ("vocabulary") relacionadas con los elementos, acciones o personas visibles en la fotografía para que el estudiante aprenda vocabulario nuevo y pueda usarlo al describir la escena.
 
-**Contexto del estudiante:**
+**Instrucciones para las 5 preguntas:**
+1. Nivel básico o intermedio, preguntas cortas, claras y naturales al estilo de las tarjetas "TALK ABOUT THE PICTURE" (1. Who are they? Where are they?, 2. Describe the people..., 3. What are they doing?, 4. Advice/rules/directions..., 5. What will happen next?).
+2. Basa las preguntas en el resumen del estudiante y en las personas, lugar y acciones reales de la fotografía.
+3. No inventes detalles que no estén en la imagen ni exijas estructuras avanzadas.
 
-El estudiante está practicando los contenidos de sus apuntes. Las preguntas deben servir para demostrar que sabe aplicar esos temas en situaciones cotidianas.
-
-**Instrucciones para generar las preguntas:**
-
-1. Utiliza un nivel de inglés básico o intermedio, con preguntas cortas, claras y naturales.
-2. Basa las preguntas principalmente en el vocabulario y las estructuras gramaticales que aparecen en el resumen.
-3. Ten en cuenta la fotografía proporcionada. Las preguntas deben relacionarse con las personas, los objetos, el lugar o las acciones que aparecen en ella.
-4. Prioriza preguntas típicas de un examen oral de descripción de imágenes.
-5. Puedes preguntar quiénes aparecen en la imagen, dónde están, cómo son físicamente, qué están haciendo, qué sucede en la escena o qué podrían hacer después.
-6. Si el resumen incluye temas como \`Appearance\`, \`Directions\`, \`Present Continuous\`, \`Simple Present\`, \`Past Simple\`, \`Future\`, \`Comparatives\`, \`Prepositions of Place\` o vocabulario similar, utilízalos cuando sean relevantes para la imagen.
-7. No es obligatorio utilizar todos los temas en una misma práctica. Selecciona únicamente los que se puedan practicar de forma natural.
-8. Formula preguntas abiertas que permitan responder con una o varias oraciones en inglés.
-9. Evita preguntas demasiado complejas, abstractas, técnicas o hipotéticas.
-10. No exijas respuestas largas ni estructuras gramaticales avanzadas.
-11. No inventes detalles que no se puedan deducir razonablemente de la fotografía.
-12. No incluyas preguntas que requieran conocimientos externos a la imagen o al resumen.
-13. Mantén un estilo parecido al de las preguntas orientativas de un examen oral escolar: directo, cotidiano y fácil de comprender.
-14. Si una pregunta no permite practicar razonablemente los temas del resumen, reemplázala por otra más adecuada.
-15. Distribuye las preguntas entre distintos aspectos de la imagen, evitando repetir la misma idea.
-
-**Ejemplo del estilo esperado (tarjetas de examen oral "TALK ABOUT THE PICTURE"):**
-
-Ejemplo A (dos personas en la calle con un mapa):
-1. Who are they? Where are they?
-2. Describe the two people in the picture (hair, height, etc.).
-3. What are they doing? Why did the tourist stop the other person?
-4. What advice or directions should the local person give to the tourist?
-5. What will the tourist do next?
-
-Ejemplo B (una enfermera/médica atendiendo a una paciente):
-1. Who is she? Where is she?
-2. How is she feeling?
-3. What has happened to her?
-4. What should / shouldn't she do?
-5. What will she do next?
-
-Ejemplo C (estudiantes y profesor en un aula):
-1. Who are they? Where are they?
-2. Describe the people in the picture. How are they feeling?
-3. What are they doing?
-4. What rules are there in this place?
-5. What will happen next?
-
-Estos ejemplos definen el estilo y el nivel de dificultad esperados. No debes repetir siempre las mismas preguntas: adáptalas a la escena real de la fotografía y al resumen proporcionado.
+**Instrucciones para las 3 palabras de vocabulario ("vocabulary"):**
+1. Elige 3 palabras o frases útiles en inglés que se relacionen directamente con lo que se ve en la fotografía (objetos, vestimenta, lugar, gestos o acciones de las personas) y que enriquezcan el vocabulario del estudiante.
+2. Para cada palabra incluye:
+   - "word": la palabra o expresión en inglés (ej. "Point out", "Crossroads", "Clipboard").
+   - "meaning": traducción breve y clara al español (ej. "señalar / indicar", "cruce de calles", "carpeta sujetapapeles").
+   - "example": una oración corta y sencilla en inglés usándola para describir esta foto (ej. "She is pointing out the route on the map.").
 
 **Formato de salida:**
-
-Devuelve exclusivamente un objeto JSON válido con la propiedad "questions" que contenga exactamente cinco preguntas en inglés.
-No incluyas introducciones, respuestas modelo, traducciones, explicaciones gramaticales, comentarios sobre la imagen ni conclusiones.
-
-Estructura JSON requerida:
-{
-  "questions": [
-    "Who are they? Where are they?",
-    "Describe the people in the picture.",
-    "What are they doing?",
-    "What is happening in the picture?",
-    "What do you think they will do next?"
-  ]
-}
+Devuelve exclusivamente un objeto JSON válido con las propiedades "questions" (5 preguntas) y "vocabulary" (3 objetos).
 
 **Resumen de gramática y vocabulario:**
-
 ${syllabus}
 
 **Fotografía o contexto visual:**
-
 ${imageContext}`;
 }
 
@@ -625,8 +577,20 @@ IMPORTANT RULES:
             type: 'ARRAY',
             items: { type: 'STRING' },
           },
+          vocabulary: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                word: { type: 'STRING' },
+                meaning: { type: 'STRING' },
+                example: { type: 'STRING' },
+              },
+              required: ['word', 'meaning', 'example'],
+            },
+          },
         },
-        required: ['questions'],
+        required: ['questions', 'vocabulary'],
       };
 
       const { text, modelUsed } = await callGeminiWithFallback(
@@ -635,7 +599,10 @@ IMPORTANT RULES:
         questionsSchema
       );
 
-      const parsed = JSON.parse(text) as { questions?: unknown };
+      const parsed = JSON.parse(text) as {
+        questions?: unknown;
+        vocabulary?: Array<{ word?: string; meaning?: string; example?: string }>;
+      };
       const rawQuestions = Array.isArray(parsed.questions)
         ? parsed.questions
             .map((item) => String(item).trim())
@@ -653,9 +620,21 @@ IMPORTANT RULES:
         );
       }
 
+      const normalizedVocabulary = Array.isArray(parsed.vocabulary)
+        ? parsed.vocabulary
+            .filter((v) => v && v.word && v.meaning)
+            .map((v) => ({
+              word: String(v.word).trim(),
+              meaning: String(v.meaning).trim(),
+              example: String(v.example || '').trim(),
+            }))
+            .slice(0, 3)
+        : [];
+
       return new Response(
         JSON.stringify({
           questions: normalizedQuestions,
+          vocabulary: normalizedVocabulary,
           modelUsed,
         }),
         {

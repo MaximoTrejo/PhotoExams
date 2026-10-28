@@ -15,6 +15,7 @@ import {
   SyllabusRecord,
   SyllabusUpsertPayload,
   TranscribeAudioResponse,
+  VocabularyItem,
 } from '../models/photo-exam.models';
 
 @Injectable({
@@ -448,14 +449,14 @@ export class PhotoExamService {
   // ============================================================================
 
   /**
-   * Solicita 5 preguntas sencillas en inglés a Gemini a través de la Edge Function.
+   * Solicita 5 preguntas sencillas en inglés + 3 palabras de vocabulario a Gemini.
    */
   public async generateQuestions(
     syllabusContent: string,
     imageUrl: string,
     imageBase64?: string,
     imageMimeType?: string
-  ): Promise<string[]> {
+  ): Promise<{ questions: string[]; vocabulary: VocabularyItem[] }> {
     const cleanSyllabus = syllabusContent.trim();
     if (!cleanSyllabus) {
       throw new Error('No existe un resumen válido para generar las preguntas.');
@@ -501,7 +502,44 @@ export class PhotoExamService {
       );
     }
 
-    return cleanedQuestions;
+    const fallbackVocab: VocabularyItem[] = [
+      {
+        word: 'In the background',
+        meaning: 'al fondo (de la imagen)',
+        example: 'In the background, we can see the building.',
+      },
+      {
+        word: 'Seem to be',
+        meaning: 'parecer estar',
+        example: 'They seem to be having an important conversation.',
+      },
+      {
+        word: 'Point out',
+        meaning: 'señalar / mostrar',
+        example: 'One person is pointing out something to the other.',
+      },
+    ];
+
+    const rawVocab = Array.isArray(data.vocabulary)
+      ? data.vocabulary
+          .filter((v) => v && v.word && v.meaning)
+          .map((v) => ({
+            word: String(v.word).trim(),
+            meaning: String(v.meaning).trim(),
+            example: String(v.example || '').trim(),
+          }))
+          .slice(0, 3)
+      : [];
+
+    const vocabulary =
+      rawVocab.length === 3
+        ? rawVocab
+        : [...rawVocab, ...fallbackVocab].slice(0, 3);
+
+    return {
+      questions: cleanedQuestions,
+      vocabulary,
+    };
   }
 
   /**

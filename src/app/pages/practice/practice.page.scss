@@ -5,19 +5,39 @@
 .main-container {
   max-width: 860px;
   margin: 0 auto;
-  padding: 20px 16px 44px;
+  padding: 18px 14px 40px;
   border-radius: 16px;
+
+  &.compact-container {
+    padding: 10px 12px 20px;
+    max-width: 980px;
+  }
 }
 
 .hero-header {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+
+  &.hero-compact {
+    margin-bottom: 10px;
+
+    .hero-badge {
+      padding: 3px 9px;
+      font-size: 0.7rem;
+      margin-bottom: 3px;
+    }
+
+    .page-title {
+      font-size: 1.15rem;
+      margin: 0;
+    }
+  }
 
   .hero-top-row {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 14px;
+    gap: 10px;
   }
 
   .hero-badge {
@@ -26,27 +46,517 @@
     gap: 6px;
     background: #e8f5e9;
     color: #2e6b40;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    padding: 6px 12px;
+    padding: 5px 11px;
     border-radius: 999px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
   }
 
   .page-title {
-    font-size: 1.7rem;
+    font-size: 1.55rem;
     font-weight: 700;
     color: #1e293b;
-    margin: 0 0 8px;
+    margin: 0 0 6px;
     letter-spacing: -0.02em;
   }
 
   .page-subtitle {
-    font-size: 0.96rem;
-    line-height: 1.55;
+    font-size: 0.92rem;
+    line-height: 1.5;
     color: #475569;
     margin: 0;
     max-width: 62ch;
+  }
+}
+
+.header-controls-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.view-mode-switcher {
+  display: inline-flex;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+
+  .mode-btn {
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 5px 9px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &.active {
+      background: #4a72b8;
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+    }
+  }
+}
+
+/* ============================================================================
+   VISTA COMPACTA (Vertical sin scroll) Y MODO TARJETA HORIZONTAL (Exam Card)
+   ============================================================================ */
+.exam-card-board {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exam-visual-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compact-top-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.compact-photo-box {
+  width: 118px;
+  min-height: 98px;
+  max-height: 112px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  cursor: pointer;
+
+  .practice-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .zoom-pill {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(15, 23, 42, 0.75);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+}
+
+.compact-photo-error {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.compact-vocab-box {
+  flex: 1;
+  min-width: 0;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.vocab-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #92400e;
+  margin-bottom: 5px;
+
+  ion-icon {
+    font-size: 0.9rem;
+    color: #d97706;
+  }
+}
+
+.vocab-skeleton-list,
+.vocab-chips-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vocab-chip-btn {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  .vocab-word {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .vocab-meaning {
+    font-size: 0.73rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &.active {
+    background: #fef3c7;
+    border-color: #f59e0b;
+
+    .vocab-word {
+      color: #78350f;
+    }
+
+    .vocab-meaning {
+      color: #92400e;
+      font-weight: 600;
+    }
+  }
+}
+
+.vocab-example-banner {
+  background: #fefce8;
+  border: 1px solid #fde047;
+  border-radius: 9px;
+  padding: 5px 10px;
+  font-size: 0.77rem;
+  line-height: 1.35;
+  color: #713f12;
+
+  strong {
+    margin-right: 4px;
+  }
+
+  span {
+    font-style: italic;
+  }
+}
+
+.exam-questions-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compact-questions-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 9px 11px;
+}
+
+.compact-questions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 5px;
+  margin-bottom: 7px;
+
+  .exam-card-heading {
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #1e293b;
+    text-transform: uppercase;
+  }
+
+  .exam-card-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #1d4ed8;
+    background: #eff6ff;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+}
+
+.compact-generating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #3b6ea5;
+  margin-bottom: 6px;
+}
+
+.compact-questions-ordered {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 0.85rem;
+    line-height: 1.32;
+    color: #1e293b;
+  }
+
+  .q-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 0.74rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .q-text {
+    font-weight: 500;
+  }
+}
+
+.compact-action-bar {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.recording-active {
+    background: #fff5f5;
+    border-color: #fca5a5;
+  }
+
+  &.processing-active {
+    background: #f0f9ff;
+    border-color: #93c5fd;
+  }
+}
+
+.compact-buttons-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .compact-mic-btn {
+    flex: 1;
+    margin: 0;
+    min-height: 38px;
+    font-size: 0.84rem;
+  }
+
+  .compact-write-toggle {
+    margin: 0;
+    min-height: 38px;
+    font-size: 0.78rem;
+  }
+
+  .compact-send-btn {
+    margin: 0;
+    min-height: 38px;
+    font-size: 0.84rem;
+  }
+}
+
+.compact-status-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+
+  &.recording-text {
+    color: #b91c1c;
+  }
+
+  &.processing-text {
+    color: #1e40af;
+
+    ion-spinner {
+      width: 15px;
+      height: 15px;
+    }
+  }
+}
+
+.compact-audio-player-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .compact-native-audio {
+    flex: 1;
+    height: 32px;
+  }
+}
+
+.compact-textarea-wrap {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 2px 9px;
+
+  .compact-textarea {
+    font-size: 0.85rem;
+    min-height: 54px;
+    --color: #1e293b;
+  }
+}
+
+.compact-alert {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+}
+
+/* Modal para ampliar la foto al tocarla */
+.photo-zoom-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.photo-zoom-dialog {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 720px;
+  width: 100%;
+  overflow: hidden;
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.25);
+
+  .photo-zoom-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1e293b;
+  }
+
+  .photo-zoom-img {
+    width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+    display: block;
+    background: #0f172a;
+  }
+}
+
+/* ============================================================================
+   MODO CELULAR HORIZONTAL (LANDSCAPE EXAM CARD)
+   Cuando el estudiante gira el celular horizontalmente, se muestra como la
+   tarjeta real del examen oral: foto + 3 palabras a la izquierda, y las 5
+   preguntas + micrófono a la derecha.
+   ============================================================================ */
+@media (orientation: landscape) {
+  .exam-card-board {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 12px;
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .exam-visual-column {
+    justify-content: space-between;
+  }
+
+  .compact-top-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .compact-photo-box {
+    width: 100%;
+    height: 155px;
+    max-height: 175px;
+  }
+
+  .exam-questions-column {
+    justify-content: space-between;
+  }
+
+  .compact-questions-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+   VISTA CLÁSICA ORIGINAL + SECCIÓN DE 3 PALABRAS DE VOCABULARIO
+   ============================================================================ */
+.classic-vocab-section {
+  margin-top: 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .classic-vocab-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
   }
 }
 
@@ -131,12 +641,11 @@
   }
 }
 
-/* 6.1. Contenedor de la fotografía */
 .photo-frame {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
-  max-height: 460px;
+  max-height: 440px;
   background: #f1f5f9;
   border-radius: 16px;
   overflow: hidden;
@@ -150,11 +659,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 16px;
   display: block;
 
   &::part(image) {
-    border-radius: 16px;
     object-fit: cover;
     width: 100%;
     height: 100%;
@@ -169,10 +676,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   z-index: 2;
   color: #334155;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
@@ -190,20 +697,8 @@
     font-size: 2.5rem;
     color: #94a3b8;
   }
-
-  p {
-    margin: 0 0 6px;
-    font-size: 0.94rem;
-  }
 }
 
-.photo-caption {
-  margin: 10px 0 0;
-  font-size: 0.84rem;
-  color: #64748b;
-}
-
-/* 6.4. Lista de preguntas */
 .generating-caption {
   display: flex;
   align-items: center;
@@ -227,19 +722,19 @@
   --padding-start: 14px;
   --padding-end: 14px;
   --inner-padding-end: 0;
-  --min-height: 56px;
+  --min-height: 52px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
 }
 
 .question-number {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #dbeafe;
   color: #1e40af;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,23 +743,22 @@
 }
 
 .question-text {
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.45;
   color: #1e293b;
-  margin: 10px 0;
+  margin: 8px 0;
 }
 
 .retry-row {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
-/* 6.5. Respuesta oral por voz + escrita */
 .answer-helper {
-  font-size: 0.93rem;
+  font-size: 0.92rem;
   line-height: 1.5;
   color: #475569;
   margin: 0 0 14px;
@@ -276,7 +770,6 @@
   border-radius: 14px;
   padding: 14px 16px;
   margin-bottom: 14px;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
 
   &.recording-active {
     background: #fff5f5;
@@ -305,7 +798,7 @@
   --box-shadow: none;
   font-weight: 600;
   text-transform: none;
-  min-height: 44px;
+  min-height: 42px;
 }
 
 .stop-voice-btn {
@@ -316,49 +809,26 @@
   --border-radius: 12px;
   font-weight: 600;
   text-transform: none;
-  min-height: 44px;
+  min-height: 42px;
 }
 
-.recording-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #b91c1c;
-
-  .pulse-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #dc2626;
-    animation: pulse-record 1.2s infinite ease-in-out;
-  }
-}
-
-.transcribing-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: #1e40af;
-
-  ion-spinner {
-    width: 18px;
-    height: 18px;
-  }
+.pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #dc2626;
+  display: inline-block;
+  animation: pulse-record 1.2s infinite ease-in-out;
 }
 
 .audio-ready-banner {
-  margin-top: 12px;
-  padding: 10px 14px;
+  margin-top: 10px;
+  padding: 9px 12px;
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
   border-radius: 10px;
   color: #065f46;
-  font-size: 0.88rem;
-  line-height: 1.45;
+  font-size: 0.85rem;
 }
 
 .audio-playback-row {
@@ -373,7 +843,6 @@
   .audio-icon {
     font-size: 1.3rem;
     color: #4a72b8;
-    flex-shrink: 0;
   }
 
   .native-audio {
@@ -400,39 +869,20 @@
   border: 1px solid #cbd5e1;
   border-radius: 12px;
   padding: 8px 14px;
-  transition: border-color 0.15s ease;
-
-  &:focus-within {
-    border-color: #4a72b8;
-    background: #ffffff;
-  }
 }
 
 .answer-textarea {
   --color: #1e293b;
   --placeholder-color: #94a3b8;
-  font-size: 0.98rem;
-  line-height: 1.6;
-  min-height: 160px;
-}
-
-.evaluating-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 14px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
-  font-size: 0.9rem;
+  font-size: 0.96rem;
+  line-height: 1.55;
+  min-height: 120px;
 }
 
 .submit-row {
   display: flex;
   justify-content: flex-end;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .primary-btn {
@@ -440,51 +890,23 @@
   --background-hover: #3d62a3;
   --background-activated: #355691;
   --color: #ffffff;
-  --border-radius: 12px;
-  font-weight: 600;
-  text-transform: none;
-  min-height: 46px;
-}
-
-.secondary-btn {
-  --border-color: #94a3b8;
-  --color: #334155;
-  --border-radius: 12px;
+  --border-radius: 11px;
   font-weight: 600;
   text-transform: none;
   min-height: 42px;
 }
 
-.btn-spinner {
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
+.secondary-btn {
+  --border-color: #94a3b8;
+  --color: #334155;
+  --border-radius: 11px;
+  font-weight: 600;
+  text-transform: none;
+  min-height: 38px;
 }
 
-@media (max-width: 640px) {
-  .main-container {
-    padding: 14px 12px 34px;
-  }
-
-  .hero-header {
-    .hero-top-row {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .page-title {
-      font-size: 1.4rem;
-    }
-  }
-
-  .new-photo-btn,
-  .submit-btn,
-  .record-voice-btn,
-  .stop-voice-btn {
-    width: 100%;
-  }
-
-  .submit-row {
-    justify-content: stretch;
-  }
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
 }

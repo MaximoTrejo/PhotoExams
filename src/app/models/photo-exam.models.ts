@@ -55,8 +55,15 @@ export interface PracticeInsertPayload {
   ai_feedback: string;
 }
 
+export interface VocabularyItem {
+  word: string;
+  meaning: string;
+  example: string;
+}
+
 export interface GenerateQuestionsResponse {
   questions: string[];
+  vocabulary?: VocabularyItem[];
   modelUsed?: string;
 }
 
@@ -78,6 +85,7 @@ export interface ActivePracticeSession {
   imageBase64?: string;
   imageMimeType?: string;
   questions: string[];
+  vocabulary?: VocabularyItem[];
   userAnswer: string;
   feedback: AiFeedback | null;
   savedPracticeId: string | null;
