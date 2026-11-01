@@ -37,6 +37,8 @@ body {
 ion-content.page-content {
   --background: #f6f8fb;
   --color: #1e293b;
+  --padding-bottom: env(safe-area-inset-bottom, 20px);
+  flex: 1 1 auto;
 }
 
 /* Barra superior de navegación compartida */

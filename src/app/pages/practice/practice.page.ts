@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import {
   AlertController,
   IonHeader,
+  IonFooter,
   IonToolbar,
   IonTitle,
   IonButtons,
@@ -65,6 +66,7 @@ export interface ItemAnswerState {
     FormsModule,
     RouterLink,
     IonHeader,
+    IonFooter,
     IonToolbar,
     IonTitle,
     IonButtons,

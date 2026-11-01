@@ -21,7 +21,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="page-content">
+<ion-content class="page-content" [scrollY]="true">
   <div class="main-container" [class.compact-container]="viewMode === 'compact'">
     <!-- Barra superior: selector Compacta / Completa + botón Otra Card -->
     <section class="hero-header" [class.hero-compact]="viewMode === 'compact'">
@@ -74,6 +74,24 @@
               <ion-icon slot="start" name="refresh-outline"></ion-icon>
               <span>Otra Card</span>
             </ion-button>
+
+            @if (hasAnyAnswer) {
+              <ion-button
+                size="small"
+                class="primary-btn top-send-btn"
+                (click)="onSubmitAnswer()"
+                [disabled]="
+                  isGeneratingQuestions ||
+                  isSubmittingAnswer ||
+                  isRecordingAudio ||
+                  isProcessingAudio ||
+                  questions.length === 0
+                "
+              >
+                <ion-icon slot="start" name="send-outline"></ion-icon>
+                <span>Enviar ({{ answeredBlocksCount }})</span>
+              </ion-button>
+            }
           </div>
         }
       </div>
@@ -993,3 +1011,50 @@
     }
   </div>
 </ion-content>
+
+<!-- Barra fija inferior (siempre visible en el celular sin necesidad de bajar) -->
+@if (hasSavedSyllabus && !isCheckingSyllabus && !syllabusError) {
+  <ion-footer class="ion-no-border sticky-submit-footer">
+    <div class="sticky-footer-inner">
+      <div class="sticky-footer-status">
+        @if (isRecordingAudio) {
+          <span class="recording-indicator">
+            <span class="pulse-dot"></span>
+            Grabando ({{ formattedRecordingTime }})...
+          </span>
+        } @else if (isProcessingAudio || isSubmittingAnswer) {
+          <span class="processing-indicator">
+            <ion-spinner name="crescent"></ion-spinner>
+            {{ isSubmittingAnswer ? 'Evaluando respuestas...' : 'Procesando audio...' }}
+          </span>
+        } @else {
+          <span class="answered-counter">
+            Listas: <strong>{{ answeredBlocksCount }} de {{ totalBlocksCount }}</strong>
+          </span>
+        }
+      </div>
+
+      <ion-button
+        size="small"
+        class="primary-btn sticky-send-btn"
+        (click)="onSubmitAnswer()"
+        [disabled]="
+          isGeneratingQuestions ||
+          isSubmittingAnswer ||
+          isRecordingAudio ||
+          isProcessingAudio ||
+          questions.length === 0 ||
+          !hasAnyAnswer
+        "
+      >
+        @if (isSubmittingAnswer) {
+          <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
+          <span>Evaluando...</span>
+        } @else {
+          <ion-icon slot="start" name="send-outline"></ion-icon>
+          <span>Enviar todo junto</span>
+        }
+      </ion-button>
+    </div>
+  </ion-footer>
+}

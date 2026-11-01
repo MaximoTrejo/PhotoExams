@@ -1,11 +1,13 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .main-container {
   max-width: 860px;
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: 20px 16px calc(64px + env(safe-area-inset-bottom, 20px));
   border-radius: 16px;
 }
 
