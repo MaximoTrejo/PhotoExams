@@ -49,6 +49,8 @@ import {
   gridOutline,
   listOutline,
   bulbOutline,
+  eyeOutline,
+  eyeOffOutline,
 } from 'ionicons/icons';
 import { VocabularyItem } from '../../models/photo-exam.models';
 import { PhotoExamService } from '../../services/photo-exam.service';
@@ -100,6 +102,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   public questions: string[] = [];
   public vocabulary: VocabularyItem[] = [];
   public selectedVocabIndex = 0;
+  // Por defecto las 3 palabras de vocabulario aparecen ocultas hasta tocar el botón de ojo
+  public isVocabVisible = false;
   public userAnswer = '';
 
   // Modo de visualización: 'compact' (sin scroll + modo tarjeta al girar el celular) o 'classic' (vista original grande)
@@ -155,11 +159,17 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       gridOutline,
       listOutline,
       bulbOutline,
+      eyeOutline,
+      eyeOffOutline,
     });
   }
 
   public selectVocab(index: number): void {
     this.selectedVocabIndex = index;
+  }
+
+  public toggleVocabVisibility(): void {
+    this.isVocabVisible = !this.isVocabVisible;
   }
 
   public setViewMode(mode: 'compact' | 'classic'): void {
@@ -306,6 +316,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.questions = [];
     this.vocabulary = [];
     this.selectedVocabIndex = 0;
+    this.isVocabVisible = false;
     this.userAnswer = '';
 
     const randomSituationUrl = this.photoExamService.generateRandomImageUrl();

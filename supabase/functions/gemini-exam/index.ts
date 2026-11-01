@@ -157,34 +157,56 @@ async function resolveImageInlineData(
 }
 
 /**
- * Construye el prompt exacto de la sección 6.3 para generar 5 preguntas + 3 palabras de vocabulario.
+ * Construye el prompt para generar 5 preguntas basadas en el banco real de preguntas
+ * de examen oral del estudiante, adaptadas visualmente a las personas y situación de la foto,
+ * junto con 3 palabras de vocabulario útiles.
  */
 function buildQuestionsPrompt(syllabus: string, imageContext: string): string {
-  return `Actúa como un profesor de inglés que prepara a un estudiante para un examen oral escolar basado en la descripción de fotografías.
+  return `Actúa como un examinador de inglés en un examen oral ("TALK ABOUT THE PICTURE").
+Observa detenidamente la fotografía adjunta (quiénes aparecen, si es un hombre, una mujer, una pareja o un grupo, dónde están, cómo se sienten, qué acaba de pasar o qué están haciendo).
 
-Tu objetivo es generar:
-A) Exactamente cinco preguntas sencillas en inglés ("questions") para que el estudiante practique los temas de gramática y vocabulario incluidos en su resumen.
-B) Exactamente tres palabras o expresiones cortas de vocabulario ("vocabulary") relacionadas con los elementos, acciones o personas visibles en la fotografía para que el estudiante aprenda vocabulario nuevo y pueda usarlo al describir la escena.
+Tu objetivo es devolver:
+A) Exactamente 5 preguntas en inglés ("questions") seleccionadas y adaptadas a partir del siguiente BANCO DE PREGUNTAS REALES DE EXAMEN del estudiante.
+B) Exactamente 3 palabras o expresiones cortas de vocabulario ("vocabulary") visibles o útiles para describir esta foto.
 
-**Instrucciones para las 5 preguntas:**
-1. Nivel básico o intermedio, preguntas cortas, claras y naturales al estilo de las tarjetas "TALK ABOUT THE PICTURE" (1. Who are they? Where are they?, 2. Describe the people..., 3. What are they doing?, 4. Advice/rules/directions..., 5. What will happen next?).
-2. Basa las preguntas en el resumen del estudiante y en las personas, lugar y acciones reales de la fotografía.
-3. No inventes detalles que no estén en la imagen ni exijas estructuras avanzadas.
+**BANCO DE PREGUNTAS REALES (elige y adapta los pronombres he/she/they o sustantivos the man/the woman/his wife/her friend/the doctor/etc. según lo que realmente se ve en la fotografía):**
+- "Who is she? Where is she?" / "Who is he? Where is he?" / "Who are they? Where are they?"
+- "What does he/she look like?" / "Describe the person in the picture." / "Describe the people in the picture."
+- "How is she feeling?" / "How is the man feeling?" / "How are they feeling?"
+- "What are they doing?" / "What is he/she doing?"
+- "What has happened?" / "What has happened to her/him?"
+- "How long has he/she been there?" / "How long have they been there?"
+- "How was his/her life different in the past?"
+- "What did he/she use to do when he/she was younger?"
+- "What advice would you give him/her/them?"
+- "What is he/she going to do after this?" / "What is his wife / her husband / the other person going to do?"
+- "What are his/her/their plans for the weekend?"
+- "What will happen next?" / "What will happen later?"
+
+**Reglas obligatorias para elegir y armar las 5 preguntas:**
+1. Mira la foto primero: usa SIEMPRE el género y número correcto de las personas que aparecen en la imagen (por ejemplo, si hay un hombre solo usa "he / the man", si hay una mujer usa "she / the woman", si hay dos o más personas usa "they" o refiere a uno de ellos como "the man / the woman / his wife / her friend" según el contexto visual).
+2. Selecciona 5 preguntas variadas de la lista anterior que encajen de forma 100% coherente con la escena de la foto:
+   - Pregunta 1: Identificación y lugar (ej. "Who is she? Where is she?" o "Who are they? Where are they?").
+   - Pregunta 2: Apariencia o sentimiento (ej. "What does he/she look like?", "Describe the person in the picture." o "How is she/the man feeling?").
+   - Pregunta 3: Acción actual o lo que ha ocurrido (ej. "What are they doing?", "What has happened?", "What has happened to her?", o "How long has he been there?").
+   - Pregunta 4: Pasado ("How was his/her life different in the past?", "What did he/she use to do when he/she was younger?") O consejo ("What advice would you give him/her?"), eligiendo la que mejor quede con la persona/situación de la foto.
+   - Pregunta 5: Futuro o planes ("What will happen next?", "What will happen later?", "What is he/she going to do after this?", "What is his wife/her friend going to do?" o "What are his/her plans for the weekend?").
+3. Mantén las preguntas exactamente con ese estilo corto, directo y natural de la lista.
 
 **Instrucciones para las 3 palabras de vocabulario ("vocabulary"):**
-1. Elige 3 palabras o frases útiles en inglés que se relacionen directamente con lo que se ve en la fotografía (objetos, vestimenta, lugar, gestos o acciones de las personas) y que enriquezcan el vocabulario del estudiante.
-2. Para cada palabra incluye:
-   - "word": la palabra o expresión en inglés (ej. "Point out", "Crossroads", "Clipboard").
-   - "meaning": traducción breve y clara al español (ej. "señalar / indicar", "cruce de calles", "carpeta sujetapapeles").
-   - "example": una oración corta y sencilla en inglés usándola para describir esta foto (ej. "She is pointing out the route on the map.").
+1. Elige 3 palabras o frases útiles en inglés relacionadas directamente con lo que se ve en la foto.
+2. Cada objeto debe tener:
+   - "word": palabra o expresión en inglés.
+   - "meaning": traducción breve en español.
+   - "example": oración corta en inglés usándola sobre esta foto.
 
 **Formato de salida:**
 Devuelve exclusivamente un objeto JSON válido con las propiedades "questions" (5 preguntas) y "vocabulary" (3 objetos).
 
-**Resumen de gramática y vocabulario:**
+**Resumen de gramática y vocabulario del estudiante:**
 ${syllabus}
 
-**Fotografía o contexto visual:**
+**Fotografía:**
 ${imageContext}`;
 }
 

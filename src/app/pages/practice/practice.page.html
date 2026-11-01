@@ -173,14 +173,36 @@
               }
             </div>
 
-            <!-- Las 3 palabras nuevas para nutrir vocabulario -->
-            <div class="compact-vocab-box">
-              <div class="vocab-header">
-                <ion-icon name="bulb-outline"></ion-icon>
-                <span>3 Palabras para usar hoy (Tócalas)</span>
+            <!-- Las 3 palabras nuevas para nutrir vocabulario (ocultas por defecto con botón de ojo) -->
+            <div class="compact-vocab-box" [class.vocab-collapsed]="!isVocabVisible">
+              <div class="vocab-header-row">
+                <div class="vocab-header">
+                  <ion-icon name="bulb-outline"></ion-icon>
+                  <span>3 Palabras de ayuda</span>
+                </div>
+
+                <button
+                  type="button"
+                  class="vocab-eye-btn"
+                  (click)="toggleVocabVisibility()"
+                  [attr.aria-label]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
+                  [title]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
+                >
+                  <ion-icon [name]="isVocabVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                  <span>{{ isVocabVisible ? 'Ocultar' : 'Ver' }}</span>
+                </button>
               </div>
 
-              @if (isGeneratingQuestions && vocabulary.length === 0) {
+              @if (!isVocabVisible) {
+                <button
+                  type="button"
+                  class="vocab-hidden-placeholder"
+                  (click)="toggleVocabVisibility()"
+                >
+                  <ion-icon name="eye-outline"></ion-icon>
+                  <span>Palabras ocultas. Toca el ojo para ver 3 palabras útiles de la foto.</span>
+                </button>
+              } @else if (isGeneratingQuestions && vocabulary.length === 0) {
                 <div class="vocab-skeleton-list">
                   <ion-skeleton-text [animated]="true" style="width: 100%; height: 24px; border-radius: 6px"></ion-skeleton-text>
                   <ion-skeleton-text [animated]="true" style="width: 92%; height: 24px; border-radius: 6px"></ion-skeleton-text>
@@ -204,8 +226,8 @@
             </div>
           </div>
 
-          <!-- Ejemplo en inglés de la palabra seleccionada -->
-          @if (vocabulary.length > 0 && vocabulary[selectedVocabIndex]) {
+          <!-- Ejemplo en inglés de la palabra seleccionada (solo visible cuando el ojo está activo) -->
+          @if (isVocabVisible && vocabulary.length > 0 && vocabulary[selectedVocabIndex]) {
             <div class="vocab-example-banner">
               <strong>{{ vocabulary[selectedVocabIndex].word }} ({{ vocabulary[selectedVocabIndex].meaning }}):</strong>
               <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
@@ -454,31 +476,46 @@
             }
           </div>
 
-          <!-- Bloque de 3 palabras de vocabulario también disponible en la Vista Clásica -->
+          <!-- Bloque de 3 palabras de vocabulario también disponible en la Vista Clásica (oculto por defecto con botón de ojo) -->
           @if (vocabulary.length > 0) {
             <div class="classic-vocab-section">
-              <div class="vocab-header">
-                <ion-icon name="bulb-outline"></ion-icon>
-                <span>3 Palabras de vocabulario para enriquecer tu descripción (Tócalas)</span>
-              </div>
-              <div class="classic-vocab-grid">
-                @for (item of vocabulary; track $index) {
-                  <button
-                    type="button"
-                    class="vocab-chip-btn"
-                    [class.active]="selectedVocabIndex === $index"
-                    (click)="selectVocab($index)"
-                  >
-                    <span class="vocab-word">{{ $index + 1 }}. {{ item.word }}</span>
-                    <span class="vocab-meaning">{{ item.meaning }}</span>
-                  </button>
-                }
-              </div>
-              @if (vocabulary[selectedVocabIndex]) {
-                <div class="vocab-example-banner">
-                  <strong>Ejemplo:</strong>
-                  <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
+              <div class="vocab-header-row">
+                <div class="vocab-header">
+                  <ion-icon name="bulb-outline"></ion-icon>
+                  <span>3 Palabras de vocabulario para enriquecer tu descripción</span>
                 </div>
+
+                <button
+                  type="button"
+                  class="vocab-eye-btn"
+                  (click)="toggleVocabVisibility()"
+                  [attr.aria-label]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
+                >
+                  <ion-icon [name]="isVocabVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                  <span>{{ isVocabVisible ? 'Ocultar palabras' : 'Ver 3 palabras' }}</span>
+                </button>
+              </div>
+
+              @if (isVocabVisible) {
+                <div class="classic-vocab-grid">
+                  @for (item of vocabulary; track $index) {
+                    <button
+                      type="button"
+                      class="vocab-chip-btn"
+                      [class.active]="selectedVocabIndex === $index"
+                      (click)="selectVocab($index)"
+                    >
+                      <span class="vocab-word">{{ $index + 1 }}. {{ item.word }}</span>
+                      <span class="vocab-meaning">{{ item.meaning }}</span>
+                    </button>
+                  }
+                </div>
+                @if (vocabulary[selectedVocabIndex]) {
+                  <div class="vocab-example-banner">
+                    <strong>Ejemplo:</strong>
+                    <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
+                  </div>
+                }
               }
             </div>
           }

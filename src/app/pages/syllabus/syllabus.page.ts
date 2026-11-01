@@ -151,23 +151,17 @@ export class SyllabusPage implements OnInit, ViewWillEnter {
     this.errorMessage = null;
 
     try {
-      const user = await this.photoExamService.ensureAuthenticatedUser();
-      if (!user) {
-        this.showAuthForm = true;
-        return;
-      }
-
-      this.showAuthForm = false;
       const record = await this.photoExamService.getSyllabus();
       if (record) {
         this.syllabusContent = record.content;
         this.lastUpdatedAt = record.updated_at;
       }
+      void this.photoExamService.ensureAuthenticatedUser();
     } catch (error: unknown) {
       this.errorMessage =
         error instanceof Error
           ? error.message
-          : 'No se pudo cargar tu resumen desde Supabase.';
+          : 'No se pudo cargar tu resumen.';
     } finally {
       this.isLoading = false;
     }

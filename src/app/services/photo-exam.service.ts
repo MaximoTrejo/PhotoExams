@@ -26,6 +26,25 @@ export class PhotoExamService {
   private readonly supabase: SupabaseClient;
   private lastRandomSeed = 0;
   private authInitPromise: Promise<AuthUserState | null> | null = null;
+  private readonly syllabusStorageKey = 'photoexams_syllabus_cache_v1';
+
+  private readonly defaultExamSyllabus = `ORAL EXAM GRAMMAR & VOCABULARY:
+1. Identification, Place & Appearance:
+   - Who is he/she? Who are they? Where are they?
+   - What does he/she look like? Describe the person in the picture (tall, slim, young, middle-aged, curly/straight/dark/blonde hair, wearing a jacket/shirt/glasses).
+2. Feelings & Present Actions (Present Continuous):
+   - How is she/the man feeling? (happy, worried, tired, focused, relaxed, nervous).
+   - What are they doing? What is he/she doing right now?
+3. Recent Events & Duration (Present Perfect):
+   - What has happened? What has happened to her/him?
+   - How long has he/she been there? (for two hours, since this morning).
+4. Past Habits & Changes (Past Simple & Used to):
+   - How was his/her life different in the past?
+   - What did he/she use to do when he/she was younger? (He/she used to...).
+5. Advice & Future Plans (Should / Would / Going to / Will):
+   - What advice would you give him/her? (I would advise him to..., He should...).
+   - What is he/she going to do after this? What is his wife / her friend going to do?
+   - What are his/her plans for the weekend? What will happen next / later?`;
 
   // Estado reactivo compartido entre las páginas Syllabus, Practice y Feedback
   private readonly authUserSignal = signal<AuthUserState | null>(null);
@@ -40,6 +59,8 @@ export class PhotoExamService {
   public readonly isAuthenticated = computed(() => this.authUserSignal() !== null);
 
   constructor() {
+    this.syllabusSignal.set(this.loadCachedOrDefaultSyllabus());
+
     this.supabase = createClient(
       environment.supabaseUrl,
       environment.supabasePublishableKey,
@@ -59,6 +80,37 @@ export class PhotoExamService {
         this.authUserSignal.set(null);
       }
     });
+  }
+
+  private loadCachedOrDefaultSyllabus(): SyllabusRecord {
+    try {
+      const raw = localStorage.getItem(this.syllabusStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as SyllabusRecord;
+        if (parsed && typeof parsed.content === 'string' && parsed.content.trim().length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignorar errores de almacenamiento local
+    }
+
+    const now = new Date().toISOString();
+    return {
+      id: 'local-default-syllabus',
+      user_id: 'local-user',
+      content: this.defaultExamSyllabus,
+      created_at: now,
+      updated_at: now,
+    };
+  }
+
+  private saveSyllabusToLocalCache(record: SyllabusRecord): void {
+    try {
+      localStorage.setItem(this.syllabusStorageKey, JSON.stringify(record));
+    } catch {
+      // Ignorar si el navegador restringe localStorage
+    }
   }
 
   // ============================================================================
@@ -187,7 +239,6 @@ export class PhotoExamService {
   public async signOut(): Promise<void> {
     await this.supabase.auth.signOut();
     this.authUserSignal.set(null);
-    this.syllabusSignal.set(null);
     this.activeSessionSignal.set(null);
     this.practiceHistorySignal.set([]);
   }
@@ -201,24 +252,24 @@ export class PhotoExamService {
   }
 
   // ============================================================================
-  // OPERACIONES DE RESUMEN (TABLA: syllabus)
+  // OPERACIONES DE RESUMEN (TABLA: syllabus + CACHÉ INSTANTÁNEA)
   // ============================================================================
 
   /**
    * Obtiene el resumen de gramática y vocabulario guardado por el estudiante.
-   * Si ya está en memoria y no se fuerza recarga, lo devuelve al instante sin esperar red.
+   * Si ya está en memoria o en caché local, lo devuelve en 0ms sin esperar red,
+   * y sincroniza silenciosamente en segundo plano con Supabase.
    */
   public async getSyllabus(forceRefresh = false): Promise<SyllabusRecord | null> {
     const cached = this.syllabusSignal();
     if (!forceRefresh && cached && cached.content.trim().length > 0) {
+      void this.syncSyllabusInBackground();
       return cached;
     }
 
     const user = await this.ensureAuthenticatedUser();
     if (!user) {
-      throw new Error(
-        'Para consultar o guardar tu resumen necesitas iniciar sesión o habilitar "Anonymous Sign-Ins" en Supabase Auth.'
-      );
+      return cached ?? this.loadCachedOrDefaultSyllabus();
     }
 
     const { data, error } = await this.supabase
@@ -227,22 +278,39 @@ export class PhotoExamService {
       .eq('user_id', user.id)
       .maybeSingle<SyllabusRecord>();
 
-    if (error) {
-      throw new Error(
-        this.translateSupabaseError(
-          error.message,
-          'No se pudo recuperar tu resumen desde Supabase. Verifica tu conexión.'
-        )
-      );
+    if (!error && data && data.content.trim().length > 0) {
+      this.syllabusSignal.set(data);
+      this.saveSyllabusToLocalCache(data);
+      return data;
     }
 
-    this.syllabusSignal.set(data ?? null);
-    return data ?? null;
+    return cached ?? this.loadCachedOrDefaultSyllabus();
+  }
+
+  private async syncSyllabusInBackground(): Promise<void> {
+    try {
+      const user = await this.ensureAuthenticatedUser();
+      if (!user) {
+        return;
+      }
+      const { data, error } = await this.supabase
+        .from('syllabus')
+        .select('id, content, user_id, created_at, updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle<SyllabusRecord>();
+
+      if (!error && data && data.content.trim().length > 0) {
+        this.syllabusSignal.set(data);
+        this.saveSyllabusToLocalCache(data);
+      }
+    } catch {
+      // Silencioso en segundo plano
+    }
   }
 
   /**
-   * Crea o actualiza el resumen del estudiante mediante UPSERT sobre user_id.
-   * Evita generar registros duplicados gracias a la restricción UNIQUE (user_id).
+   * Crea o actualiza el resumen del estudiante guardándolo primero en caché local
+   * instantánea y sincronizándolo en Supabase si hay sesión activa.
    */
   public async saveSyllabus(content: string): Promise<SyllabusRecord> {
     const trimmedContent = content.trim();
@@ -250,17 +318,28 @@ export class PhotoExamService {
       throw new Error('El resumen no puede estar vacío. Escribe o pega tus apuntes antes de guardar.');
     }
 
+    const now = new Date().toISOString();
+    const localRecord: SyllabusRecord = {
+      id: this.syllabusSignal()?.id || 'local-syllabus',
+      user_id: this.authUserSignal()?.id || 'local-user',
+      content: trimmedContent,
+      created_at: this.syllabusSignal()?.created_at || now,
+      updated_at: now,
+    };
+
+    // Guardamos inmediatamente en memoria y en localStorage para que nunca se pierda ni pida recargar
+    this.syllabusSignal.set(localRecord);
+    this.saveSyllabusToLocalCache(localRecord);
+
     const user = await this.ensureAuthenticatedUser();
     if (!user) {
-      throw new Error(
-        'Debes iniciar sesión con tu cuenta antes de guardar el resumen en Supabase.'
-      );
+      return localRecord;
     }
 
     const payload: SyllabusUpsertPayload = {
       user_id: user.id,
       content: trimmedContent,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     };
 
     const { data, error } = await this.supabase
@@ -269,17 +348,13 @@ export class PhotoExamService {
       .select('id, content, user_id, created_at, updated_at')
       .single<SyllabusRecord>();
 
-    if (error || !data) {
-      throw new Error(
-        this.translateSupabaseError(
-          error?.message || '',
-          'No se pudo guardar el resumen en Supabase. Inténtalo nuevamente.'
-        )
-      );
+    if (!error && data) {
+      this.syllabusSignal.set(data);
+      this.saveSyllabusToLocalCache(data);
+      return data;
     }
 
-    this.syllabusSignal.set(data);
-    return data;
+    return localRecord;
   }
 
   // ============================================================================
