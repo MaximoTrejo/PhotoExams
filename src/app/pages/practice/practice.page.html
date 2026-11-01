@@ -500,63 +500,12 @@
           </ul>
         </div>
 
-        <!-- Pie compacto: Enviar todo junto -->
-        <div class="exam-card-footer compact-footer">
-          @if (isRecordingAudio) {
-            <div class="compact-status-line recording-text">
-              <span class="pulse-dot"></span>
-              <span>Grabando... Toca "Detener" al finalizar (otros botones bloqueados).</span>
-            </div>
-          }
-
-          @if (isProcessingAudio || isSubmittingAnswer) {
-            <div class="compact-status-line processing-text">
-              <ion-spinner name="crescent"></ion-spinner>
-              <span>
-                {{
-                  isSubmittingAnswer
-                    ? 'Enviando todas tus respuestas juntas...'
-                    : 'Procesando audio...'
-                }}
-              </span>
-            </div>
-          }
-
-          @if (voiceError || answerError) {
-            <div class="alert-banner alert-error compact-alert" role="alert">
-              <ion-icon name="alert-circle-outline"></ion-icon>
-              <span>{{ voiceError || answerError }}</span>
-            </div>
-          }
-
-          <div class="footer-submit-bar">
-            <span class="answered-counter">
-              Listas: <strong>{{ answeredBlocksCount }}/{{ totalBlocksCount }}</strong>
-            </span>
-
-            <ion-button
-              size="small"
-              class="primary-btn send-all-btn"
-              (click)="onSubmitAnswer()"
-              [disabled]="
-                isGeneratingQuestions ||
-                isSubmittingAnswer ||
-                isRecordingAudio ||
-                isProcessingAudio ||
-                questions.length === 0 ||
-                !hasAnyAnswer
-              "
-            >
-              @if (isSubmittingAnswer) {
-                <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
-                <span>Evaluando...</span>
-              } @else {
-                <ion-icon slot="start" name="send-outline"></ion-icon>
-                <span>Enviar todo junto</span>
-              }
-            </ion-button>
+        @if (voiceError || answerError) {
+          <div class="alert-banner alert-error compact-alert" role="alert">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>{{ voiceError || answerError }}</span>
           </div>
-        </div>
+        }
       </div>
     } @else {
       <!-- ========================================================================= -->
@@ -929,68 +878,12 @@
           </ul>
         </div>
 
-        <!-- Pie de la vista Completa: Enviar todo junto -->
-        <div class="exam-card-footer">
-          @if (isRecordingAudio) {
-            <div class="compact-status-line recording-text">
-              <span class="pulse-dot"></span>
-              <span>
-                Grabando audio... Toca "Detener" cuando termines esta respuesta (los demás botones
-                de grabación están bloqueados).
-              </span>
-            </div>
-          }
-
-          @if (isProcessingAudio || isSubmittingAnswer) {
-            <div class="compact-status-line processing-text">
-              <ion-spinner name="crescent"></ion-spinner>
-              <span>
-                {{
-                  isSubmittingAnswer
-                    ? 'Enviando todas tus respuestas juntas y evaluando con IA...'
-                    : 'Procesando tu grabación de audio (espera un instante)...'
-                }}
-              </span>
-            </div>
-          }
-
-          @if (voiceError || answerError) {
-            <div class="alert-banner alert-error compact-alert" role="alert">
-              <ion-icon name="alert-circle-outline"></ion-icon>
-              <span>{{ voiceError || answerError }}</span>
-            </div>
-          }
-
-          <div class="footer-submit-bar">
-            <div class="answered-counter">
-              <span>
-                Respuestas listas:
-                <strong>{{ answeredBlocksCount }} de {{ totalBlocksCount }}</strong>
-              </span>
-            </div>
-
-            <ion-button
-              class="primary-btn send-all-btn"
-              (click)="onSubmitAnswer()"
-              [disabled]="
-                isGeneratingQuestions ||
-                isSubmittingAnswer ||
-                isRecordingAudio ||
-                isProcessingAudio ||
-                questions.length === 0 ||
-                !hasAnyAnswer
-              "
-            >
-              @if (isSubmittingAnswer) {
-                <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
-                <span>Evaluando todo...</span>
-              } @else {
-                <ion-icon slot="start" name="send-outline"></ion-icon>
-                <span>Enviar todo junto</span>
-              }
-            </ion-button>
+        @if (voiceError || answerError) {
+          <div class="alert-banner alert-error compact-alert" role="alert">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>{{ voiceError || answerError }}</span>
           </div>
-        </div>
+        }
       </div>
     }
 
