@@ -100,6 +100,9 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   public imageMimeType?: string;
 
   public questions: string[] = [];
+  public personalQuestions: string[] = [];
+  public revealedPersonalMap: Record<number, boolean> = {};
+  public speakingPersonalIndex: number | null = null;
   public vocabulary: VocabularyItem[] = [];
   public selectedVocabIndex = 0;
   // Por defecto las 3 palabras de vocabulario aparecen ocultas hasta tocar el botón de ojo
@@ -108,6 +111,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
   // Modo de visualización: 'compact' (sin scroll + modo tarjeta al girar el celular) o 'classic' (vista original grande)
   public viewMode: 'compact' | 'classic' = 'compact';
+  // Filtro rápido en la tarjeta para ver las 5 de la foto, las 4 personales en audio, o ambas juntas
+  public examSectionTab: 'both' | 'picture' | 'personal' = 'both';
   public isPhotoExpanded = false;
   public showCompactTextInput = false;
 
@@ -172,6 +177,63 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.isVocabVisible = !this.isVocabVisible;
   }
 
+  public setExamSectionTab(tab: 'both' | 'picture' | 'personal'): void {
+    this.examSectionTab = tab;
+  }
+
+  public togglePersonalQuestionTranscript(index: number): void {
+    this.revealedPersonalMap = {
+      ...this.revealedPersonalMap,
+      [index]: !this.revealedPersonalMap[index],
+    };
+  }
+
+  public speakPersonalQuestion(index: number, slow = false): void {
+    const questionText = this.personalQuestions[index];
+    if (!questionText || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(questionText);
+      utterance.lang = 'en-GB';
+      utterance.rate = slow ? 0.78 : 0.96;
+
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice =
+        voices.find((v) => v.lang.startsWith('en-GB')) ||
+        voices.find((v) => v.lang.startsWith('en-US')) ||
+        voices.find((v) => v.lang.startsWith('en'));
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      this.speakingPersonalIndex = index;
+      utterance.onend = () => {
+        if (this.speakingPersonalIndex === index) {
+          this.speakingPersonalIndex = null;
+        }
+      };
+      utterance.onerror = () => {
+        if (this.speakingPersonalIndex === index) {
+          this.speakingPersonalIndex = null;
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      this.speakingPersonalIndex = null;
+    }
+  }
+
+  public stopSpeakingQuestion(): void {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    this.speakingPersonalIndex = null;
+  }
+
   public setViewMode(mode: 'compact' | 'classic'): void {
     this.viewMode = mode;
   }
@@ -193,10 +255,12 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   }
 
   public ionViewWillLeave(): void {
+    this.stopSpeakingQuestion();
     this.cleanupMicrophoneResources();
   }
 
   public ngOnDestroy(): void {
+    this.stopSpeakingQuestion();
     this.cleanupMicrophoneResources();
     if (this.recordedAudioUrl) {
       URL.revokeObjectURL(this.recordedAudioUrl);
@@ -243,6 +307,10 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         this.imageBase64 = existingSession.imageBase64;
         this.imageMimeType = existingSession.imageMimeType;
         this.questions = [...existingSession.questions];
+        this.personalQuestions = existingSession.personalQuestions
+          ? [...existingSession.personalQuestions]
+          : [];
+        this.revealedPersonalMap = {};
         this.vocabulary = existingSession.vocabulary ? [...existingSession.vocabulary] : [];
         this.selectedVocabIndex = 0;
         this.userAnswer = existingSession.userAnswer;
@@ -305,6 +373,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       return;
     }
 
+    this.stopSpeakingQuestion();
     this.cleanupMicrophoneResources();
     this.clearAudioRecording();
     this.questionsError = null;
@@ -314,6 +383,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.isLoadingImage = true;
     this.isGeneratingQuestions = true;
     this.questions = [];
+    this.personalQuestions = [];
+    this.revealedPersonalMap = {};
     this.vocabulary = [];
     this.selectedVocabIndex = 0;
     this.isVocabVisible = false;
@@ -328,13 +399,15 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     try {
       // No esperamos a descargar y convertir la foto en el celular antes de pedir las preguntas:
       // el navegador muestra la foto en paralelo mientras el servidor de Supabase descarga
-      // una versión liviana (25 KB) a velocidad de datacenter y genera las 5 preguntas + 3 palabras.
+      // una versión liviana (25 KB) a velocidad de datacenter y genera las 5 preguntas + 4 personales + 3 palabras.
       const generated = await this.photoExamService.generateQuestions(
         this.syllabusContent,
         this.displayImageUrl
       );
 
       this.questions = generated.questions;
+      this.personalQuestions = generated.personalQuestions;
+      this.revealedPersonalMap = {};
       this.vocabulary = generated.vocabulary;
       this.selectedVocabIndex = 0;
 
@@ -344,6 +417,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageUrl: this.imageUrl,
         resolvedImageUrl: this.displayImageUrl,
         questions: this.questions,
+        personalQuestions: this.personalQuestions,
         vocabulary: this.vocabulary,
         userAnswer: '',
         feedback: null,
@@ -379,6 +453,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         this.imageMimeType
       );
       this.questions = generated.questions;
+      this.personalQuestions = generated.personalQuestions;
+      this.revealedPersonalMap = {};
       this.vocabulary = generated.vocabulary;
       this.selectedVocabIndex = 0;
 
@@ -390,6 +466,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageBase64: this.imageBase64,
         imageMimeType: this.imageMimeType,
         questions: this.questions,
+        personalQuestions: this.personalQuestions,
         vocabulary: this.vocabulary,
         userAnswer: this.userAnswer,
         feedback: null,
@@ -659,6 +736,16 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.isSubmittingAnswer = true;
 
     try {
+      const combinedQuestionsForEvaluation =
+        this.examSectionTab === 'personal' && this.personalQuestions.length > 0
+          ? this.personalQuestions.map((q, i) => `Personal Question ${i + 1}: ${q}`)
+          : this.examSectionTab === 'picture'
+            ? [...this.questions]
+            : [
+                ...this.questions,
+                ...this.personalQuestions.map((q, i) => `Personal Question ${i + 1}: ${q}`),
+              ];
+
       this.photoExamService.setActiveSession({
         sessionKey:
           this.photoExamService.activeSession()?.sessionKey || `practice-${Date.now()}`,
@@ -668,6 +755,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         imageBase64: this.imageBase64,
         imageMimeType: this.imageMimeType,
         questions: [...this.questions],
+        personalQuestions: [...this.personalQuestions],
         vocabulary: [...this.vocabulary],
         userAnswer: trimmedAnswer || '[Respuesta oral en audio]',
         feedback: null,
@@ -678,7 +766,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       const feedback = await this.photoExamService.evaluateAnswer({
         syllabusContent: this.syllabusContent,
         imageUrl: this.displayImageUrl || this.imageUrl,
-        questions: this.questions,
+        questions: combinedQuestionsForEvaluation,
         userAnswer: trimmedAnswer,
         audioBlob: this.recordedAudioBlob,
       });

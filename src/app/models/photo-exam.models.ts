@@ -63,6 +63,7 @@ export interface VocabularyItem {
 
 export interface GenerateQuestionsResponse {
   questions: string[];
+  personalQuestions?: string[];
   vocabulary?: VocabularyItem[];
   modelUsed?: string;
 }
@@ -85,6 +86,7 @@ export interface ActivePracticeSession {
   imageBase64?: string;
   imageMimeType?: string;
   questions: string[];
+  personalQuestions?: string[];
   vocabulary?: VocabularyItem[];
   userAnswer: string;
   feedback: AiFeedback | null;

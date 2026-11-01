@@ -135,149 +135,231 @@
       <!-- VISTA COMPACTA (Vertical sin scroll) Y MODO TARJETA AL GIRAR EL CELULAR   -->
       <!-- ========================================================================= -->
       <div class="exam-card-board">
-        <!-- Columna / Bloque Izquierdo: Foto compacta + 3 palabras de vocabulario -->
+        <!-- Columna / Bloque Izquierdo: Foto grande + barra diminuta de 3 palabras con botón de ojo -->
         <div class="exam-visual-column">
-          <div class="compact-top-row">
-            <!-- Miniatura de la fotografía (tocable para ampliar) -->
-            <div
-              class="compact-photo-box"
-              (click)="togglePhotoExpanded()"
-              role="button"
-              tabindex="0"
-              aria-label="Ampliar fotografía"
-            >
-              @if (isLoadingImage) {
-                <div class="photo-loading-overlay">
-                  <ion-spinner name="crescent"></ion-spinner>
-                </div>
-              }
+          <!-- Fotografía grande (tocable para pantalla completa) -->
+          <div
+            class="compact-photo-box"
+            (click)="togglePhotoExpanded()"
+            role="button"
+            tabindex="0"
+            aria-label="Ampliar fotografía"
+          >
+            @if (isLoadingImage) {
+              <div class="photo-loading-overlay">
+                <ion-spinner name="crescent"></ion-spinner>
+              </div>
+            }
 
-              @if (hasImageError) {
-                <div class="compact-photo-error">
-                  <ion-icon name="image-outline"></ion-icon>
-                  <span>Error</span>
-                </div>
-              } @else if (displayImageUrl) {
-                <ion-img
-                  class="practice-image"
-                  [src]="displayImageUrl"
-                  alt="Fotografía de práctica oral"
-                  (ionImgWillLoad)="onImageWillLoad()"
-                  (ionImgDidLoad)="onImageDidLoad()"
-                  (ionError)="onImageError()"
-                ></ion-img>
-                <span class="zoom-pill">
-                  <ion-icon name="expand-outline"></ion-icon>
-                  <span>Ampliar</span>
-                </span>
-              }
+            @if (hasImageError) {
+              <div class="compact-photo-error">
+                <ion-icon name="image-outline"></ion-icon>
+                <span>No se pudo cargar la imagen</span>
+              </div>
+            } @else if (displayImageUrl) {
+              <ion-img
+                class="practice-image"
+                [src]="displayImageUrl"
+                alt="Fotografía de práctica oral"
+                (ionImgWillLoad)="onImageWillLoad()"
+                (ionImgDidLoad)="onImageDidLoad()"
+                (ionError)="onImageError()"
+              ></ion-img>
+              <span class="zoom-pill">
+                <ion-icon name="expand-outline"></ion-icon>
+                <span>Ampliar</span>
+              </span>
+            }
+          </div>
+
+          <!-- Barra mini de 3 palabras (oculta por defecto y muy pequeña para darle prioridad a la foto) -->
+          <div class="mini-vocab-strip">
+            <div class="mini-vocab-bar">
+              <span class="mini-vocab-label">
+                <ion-icon name="bulb-outline"></ion-icon>
+                <span>3 palabras útiles</span>
+              </span>
+
+              <button
+                type="button"
+                class="vocab-eye-btn"
+                (click)="toggleVocabVisibility()"
+                [attr.aria-label]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
+              >
+                <ion-icon [name]="isVocabVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                <span>{{ isVocabVisible ? 'Ocultar' : 'Ver palabras' }}</span>
+              </button>
             </div>
 
-            <!-- Las 3 palabras nuevas para nutrir vocabulario (ocultas por defecto con botón de ojo) -->
-            <div class="compact-vocab-box" [class.vocab-collapsed]="!isVocabVisible">
-              <div class="vocab-header-row">
-                <div class="vocab-header">
-                  <ion-icon name="bulb-outline"></ion-icon>
-                  <span>3 Palabras de ayuda</span>
-                </div>
-
-                <button
-                  type="button"
-                  class="vocab-eye-btn"
-                  (click)="toggleVocabVisibility()"
-                  [attr.aria-label]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
-                  [title]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
-                >
-                  <ion-icon [name]="isVocabVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-                  <span>{{ isVocabVisible ? 'Ocultar' : 'Ver' }}</span>
-                </button>
+            @if (isVocabVisible && vocabulary.length > 0) {
+              <div class="mini-vocab-pills-row">
+                @for (item of vocabulary; track $index) {
+                  <button
+                    type="button"
+                    class="mini-vocab-pill"
+                    [class.active]="selectedVocabIndex === $index"
+                    (click)="selectVocab($index)"
+                  >
+                    <strong>{{ item.word }}</strong>
+                    <span>({{ item.meaning }})</span>
+                  </button>
+                }
               </div>
 
-              @if (!isVocabVisible) {
-                <button
-                  type="button"
-                  class="vocab-hidden-placeholder"
-                  (click)="toggleVocabVisibility()"
-                >
-                  <ion-icon name="eye-outline"></ion-icon>
-                  <span>Palabras ocultas. Toca el ojo para ver 3 palabras útiles de la foto.</span>
-                </button>
-              } @else if (isGeneratingQuestions && vocabulary.length === 0) {
-                <div class="vocab-skeleton-list">
-                  <ion-skeleton-text [animated]="true" style="width: 100%; height: 24px; border-radius: 6px"></ion-skeleton-text>
-                  <ion-skeleton-text [animated]="true" style="width: 92%; height: 24px; border-radius: 6px"></ion-skeleton-text>
-                  <ion-skeleton-text [animated]="true" style="width: 96%; height: 24px; border-radius: 6px"></ion-skeleton-text>
+              @if (vocabulary[selectedVocabIndex]) {
+                <div class="vocab-example-banner">
+                  <strong>Ej:</strong>
+                  <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <!-- Columna / Bloque Derecho: 5 Preguntas de la Foto + 4 Preguntas Personales en Audio + Respuesta -->
+        <div class="exam-questions-column">
+          <!-- Selector rápido de sección dentro de la misma Card -->
+          <div class="card-section-tabs" role="tablist">
+            <button
+              type="button"
+              class="section-tab-btn"
+              [class.active]="examSectionTab === 'both'"
+              (click)="setExamSectionTab('both')"
+            >
+              📋 Card Completa
+            </button>
+            <button
+              type="button"
+              class="section-tab-btn"
+              [class.active]="examSectionTab === 'picture'"
+              (click)="setExamSectionTab('picture')"
+            >
+              🖼️ 1. Picture (5)
+            </button>
+            <button
+              type="button"
+              class="section-tab-btn"
+              [class.active]="examSectionTab === 'personal'"
+              (click)="setExamSectionTab('personal')"
+            >
+              🎧 2. Personales (4)
+            </button>
+          </div>
+
+          <!-- PARTE 1 DE LA CARD: TALK ABOUT THE PICTURE (5 preguntas sobre la foto) -->
+          @if (examSectionTab === 'both' || examSectionTab === 'picture') {
+            <div class="compact-questions-box">
+              <div class="compact-questions-header">
+                <span class="exam-card-heading">1. TALK ABOUT THE PICTURE</span>
+                <span class="exam-card-count">5 Questions</span>
+              </div>
+
+              @if (isGeneratingQuestions) {
+                <div class="compact-generating">
+                  <ion-spinner name="dots"></ion-spinner>
+                  <span>Generando preguntas del examen...</span>
+                </div>
+                <div class="compact-skeleton-list">
+                  @for (item of skeletonItems; track item) {
+                    <ion-skeleton-text
+                      [animated]="true"
+                      style="width: 94%; height: 14px; border-radius: 5px; margin-bottom: 5px"
+                    ></ion-skeleton-text>
+                  }
+                </div>
+              } @else if (questionsError) {
+                <div class="alert-banner alert-error" role="alert">
+                  <ion-icon name="alert-circle-outline"></ion-icon>
+                  <span>{{ questionsError }}</span>
+                </div>
+                <div class="retry-row">
+                  <ion-button size="small" class="primary-btn" (click)="retryGenerateQuestions()">
+                    <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                    Reintentar
+                  </ion-button>
                 </div>
               } @else {
-                <div class="vocab-chips-column">
-                  @for (item of vocabulary; track $index) {
-                    <button
-                      type="button"
-                      class="vocab-chip-btn"
-                      [class.active]="selectedVocabIndex === $index"
-                      (click)="selectVocab($index)"
-                    >
-                      <span class="vocab-word">{{ $index + 1 }}. {{ item.word }}</span>
-                      <span class="vocab-meaning">{{ item.meaning }}</span>
-                    </button>
+                <ol class="compact-questions-ordered">
+                  @for (question of questions; track $index) {
+                    <li>
+                      <span class="q-badge">{{ $index + 1 }}</span>
+                      <span class="q-text">{{ question }}</span>
+                    </li>
+                  }
+                </ol>
+              }
+            </div>
+          }
+
+          <!-- PARTE 2 DE LA CARD: 4 PREGUNTAS PERSONALES EN AUDIO (con botón para transcribir a texto si no la sacas) -->
+          @if (examSectionTab === 'both' || examSectionTab === 'personal') {
+            <div class="personal-questions-box">
+              <div class="compact-questions-header">
+                <span class="exam-card-heading">2. PERSONAL QUESTIONS (AUDIO)</span>
+                <span class="exam-card-count personal-badge">4 Oral Questions</span>
+              </div>
+
+              <p class="personal-helper-note">
+                Toca <strong>🔊 Escuchar</strong> para oír la pregunta como en el examen oral. Si no
+                la entiendes, toca el ojo <strong>👁️ Texto</strong> para leerla.
+              </p>
+
+              @if (isGeneratingQuestions && personalQuestions.length === 0) {
+                <div class="compact-skeleton-list">
+                  <ion-skeleton-text [animated]="true" style="width: 90%; height: 28px; border-radius: 6px; margin-bottom: 5px"></ion-skeleton-text>
+                  <ion-skeleton-text [animated]="true" style="width: 90%; height: 28px; border-radius: 6px; margin-bottom: 5px"></ion-skeleton-text>
+                </div>
+              } @else {
+                <div class="personal-questions-list">
+                  @for (pQuestion of personalQuestions; track $index) {
+                    <div class="personal-q-item" [class.speaking-now]="speakingPersonalIndex === $index">
+                      <div class="personal-q-controls">
+                        <span class="q-badge personal-q-num">{{ $index + 1 }}</span>
+
+                        <!-- Botón para escuchar la pregunta en inglés -->
+                        <button
+                          type="button"
+                          class="play-question-btn"
+                          [class.active]="speakingPersonalIndex === $index"
+                          (click)="speakPersonalQuestion($index, false)"
+                        >
+                          <ion-icon name="volume-high-outline"></ion-icon>
+                          <span>{{ speakingPersonalIndex === $index ? 'Sonando...' : 'Escuchar' }}</span>
+                        </button>
+
+                        <!-- Botón lento por si quiere escuchar más pausado -->
+                        <button
+                          type="button"
+                          class="slow-question-btn"
+                          (click)="speakPersonalQuestion($index, true)"
+                          title="Escuchar más lento"
+                        >
+                          🐢 Lento
+                        </button>
+
+                        <!-- Botón para ver la pregunta escrita en caso de que no la saque de oído -->
+                        <button
+                          type="button"
+                          class="reveal-question-btn"
+                          [class.revealed]="revealedPersonalMap[$index]"
+                          (click)="togglePersonalQuestionTranscript($index)"
+                        >
+                          <ion-icon [name]="revealedPersonalMap[$index] ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                          <span>{{ revealedPersonalMap[$index] ? 'Ocultar' : 'Texto' }}</span>
+                        </button>
+                      </div>
+
+                      @if (revealedPersonalMap[$index]) {
+                        <div class="personal-q-transcript">
+                          {{ pQuestion }}
+                        </div>
+                      }
+                    </div>
                   }
                 </div>
               }
             </div>
-          </div>
-
-          <!-- Ejemplo en inglés de la palabra seleccionada (solo visible cuando el ojo está activo) -->
-          @if (isVocabVisible && vocabulary.length > 0 && vocabulary[selectedVocabIndex]) {
-            <div class="vocab-example-banner">
-              <strong>{{ vocabulary[selectedVocabIndex].word }} ({{ vocabulary[selectedVocabIndex].meaning }}):</strong>
-              <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
-            </div>
           }
-        </div>
-
-        <!-- Columna / Bloque Derecho: Las 5 preguntas + Grabación directa desde la tarjeta -->
-        <div class="exam-questions-column">
-          <div class="compact-questions-box">
-            <div class="compact-questions-header">
-              <span class="exam-card-heading">TALK ABOUT THE PICTURE</span>
-              <span class="exam-card-count">5 Guide Questions</span>
-            </div>
-
-            @if (isGeneratingQuestions) {
-              <div class="compact-generating">
-                <ion-spinner name="dots"></ion-spinner>
-                <span>Generando 5 preguntas y 3 palabras de vocabulario...</span>
-              </div>
-              <div class="compact-skeleton-list">
-                @for (item of skeletonItems; track item) {
-                  <ion-skeleton-text
-                    [animated]="true"
-                    style="width: 94%; height: 15px; border-radius: 5px; margin-bottom: 6px"
-                  ></ion-skeleton-text>
-                }
-              </div>
-            } @else if (questionsError) {
-              <div class="alert-banner alert-error" role="alert">
-                <ion-icon name="alert-circle-outline"></ion-icon>
-                <span>{{ questionsError }}</span>
-              </div>
-              <div class="retry-row">
-                <ion-button size="small" class="primary-btn" (click)="retryGenerateQuestions()">
-                  <ion-icon slot="start" name="refresh-outline"></ion-icon>
-                  Reintentar
-                </ion-button>
-              </div>
-            } @else {
-              <ol class="compact-questions-ordered">
-                @for (question of questions; track $index) {
-                  <li>
-                    <span class="q-badge">{{ $index + 1 }}</span>
-                    <span class="q-text">{{ question }}</span>
-                  </li>
-                }
-              </ol>
-            }
-          </div>
 
           <!-- Barra de grabación de voz y envío directo integrada en la misma vista -->
           <div
@@ -577,6 +659,65 @@
                 </ion-item>
               }
             </ion-list>
+          }
+
+          <!-- Las 4 Preguntas Personales en Audio también en Vista Clásica -->
+          @if (personalQuestions.length > 0) {
+            <div class="personal-questions-box classic-personal-box">
+              <div class="compact-questions-header">
+                <span class="exam-card-heading">2. PERSONAL QUESTIONS (AUDIO)</span>
+                <span class="exam-card-count personal-badge">4 Oral Questions</span>
+              </div>
+
+              <p class="personal-helper-note">
+                Escucha cada pregunta personal con <strong>🔊 Escuchar</strong> y si no la sacas de
+                oído pulsa <strong>👁️ Texto</strong> para verla escrita:
+              </p>
+
+              <div class="personal-questions-list">
+                @for (pQuestion of personalQuestions; track $index) {
+                  <div class="personal-q-item" [class.speaking-now]="speakingPersonalIndex === $index">
+                    <div class="personal-q-controls">
+                      <span class="q-badge personal-q-num">{{ $index + 1 }}</span>
+
+                      <button
+                        type="button"
+                        class="play-question-btn"
+                        [class.active]="speakingPersonalIndex === $index"
+                        (click)="speakPersonalQuestion($index, false)"
+                      >
+                        <ion-icon name="volume-high-outline"></ion-icon>
+                        <span>{{ speakingPersonalIndex === $index ? 'Sonando...' : 'Escuchar pregunta' }}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        class="slow-question-btn"
+                        (click)="speakPersonalQuestion($index, true)"
+                      >
+                        🐢 Lento
+                      </button>
+
+                      <button
+                        type="button"
+                        class="reveal-question-btn"
+                        [class.revealed]="revealedPersonalMap[$index]"
+                        (click)="togglePersonalQuestionTranscript($index)"
+                      >
+                        <ion-icon [name]="revealedPersonalMap[$index] ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                        <span>{{ revealedPersonalMap[$index] ? 'Ocultar texto' : 'Ver texto' }}</span>
+                      </button>
+                    </div>
+
+                    @if (revealedPersonalMap[$index]) {
+                      <div class="personal-q-transcript">
+                        {{ pQuestion }}
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
           }
         </ion-card-content>
       </ion-card>

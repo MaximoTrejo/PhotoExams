@@ -157,19 +157,21 @@ async function resolveImageInlineData(
 }
 
 /**
- * Construye el prompt para generar 5 preguntas basadas en el banco real de preguntas
- * de examen oral del estudiante, adaptadas visualmente a las personas y situación de la foto,
- * junto con 3 palabras de vocabulario útiles.
+ * Construye el prompt para generar:
+ * A) 5 preguntas de la imagen ("questions") basadas en el banco real de preguntas del estudiante.
+ * B) 4 preguntas personales orales ("personalQuestions") inspiradas en las tarjetas reales del examen.
+ * C) 3 palabras de vocabulario ("vocabulary") útiles para la escena.
  */
 function buildQuestionsPrompt(syllabus: string, imageContext: string): string {
-  return `Actúa como un examinador de inglés en un examen oral ("TALK ABOUT THE PICTURE").
+  return `Actúa como un examinador de inglés en un examen oral ("TALK ABOUT THE PICTURE" + "PERSONAL QUESTIONS").
 Observa detenidamente la fotografía adjunta (quiénes aparecen, si es un hombre, una mujer, una pareja o un grupo, dónde están, cómo se sienten, qué acaba de pasar o qué están haciendo).
 
-Tu objetivo es devolver:
-A) Exactamente 5 preguntas en inglés ("questions") seleccionadas y adaptadas a partir del siguiente BANCO DE PREGUNTAS REALES DE EXAMEN del estudiante.
-B) Exactamente 3 palabras o expresiones cortas de vocabulario ("vocabulary") visibles o útiles para describir esta foto.
+Tu objetivo es devolver en un único JSON:
+A) "questions": Exactamente 5 preguntas sobre la fotografía seleccionadas y adaptadas a partir del BANCO DE PREGUNTAS DE LA IMAGEN.
+B) "personalQuestions": Exactamente 4 preguntas personales dirigidas al estudiante ("you"), combinando algunas del BANCO DE PREGUNTAS PERSONALES REALES y generando variantes nuevas del mismo nivel basadas en los temas de su resumen para que no sean siempre las mismas.
+C) "vocabulary": Exactamente 3 palabras o expresiones cortas de vocabulario visibles o útiles para describir esta foto.
 
-**BANCO DE PREGUNTAS REALES (elige y adapta los pronombres he/she/they o sustantivos the man/the woman/his wife/her friend/the doctor/etc. según lo que realmente se ve en la fotografía):**
+**A. BANCO DE PREGUNTAS DE LA IMAGEN (adapta he/she/they o the man/the woman/his wife/her friend según lo que realmente se ve en la foto):**
 - "Who is she? Where is she?" / "Who is he? Where is he?" / "Who are they? Where are they?"
 - "What does he/she look like?" / "Describe the person in the picture." / "Describe the people in the picture."
 - "How is she feeling?" / "How is the man feeling?" / "How are they feeling?"
@@ -183,25 +185,25 @@ B) Exactamente 3 palabras o expresiones cortas de vocabulario ("vocabulary") vis
 - "What are his/her/their plans for the weekend?"
 - "What will happen next?" / "What will happen later?"
 
-**Reglas obligatorias para elegir y armar las 5 preguntas:**
-1. Mira la foto primero: usa SIEMPRE el género y número correcto de las personas que aparecen en la imagen (por ejemplo, si hay un hombre solo usa "he / the man", si hay una mujer usa "she / the woman", si hay dos o más personas usa "they" o refiere a uno de ellos como "the man / the woman / his wife / her friend" según el contexto visual).
-2. Selecciona 5 preguntas variadas de la lista anterior que encajen de forma 100% coherente con la escena de la foto:
-   - Pregunta 1: Identificación y lugar (ej. "Who is she? Where is she?" o "Who are they? Where are they?").
-   - Pregunta 2: Apariencia o sentimiento (ej. "What does he/she look like?", "Describe the person in the picture." o "How is she/the man feeling?").
-   - Pregunta 3: Acción actual o lo que ha ocurrido (ej. "What are they doing?", "What has happened?", "What has happened to her?", o "How long has he been there?").
-   - Pregunta 4: Pasado ("How was his/her life different in the past?", "What did he/she use to do when he/she was younger?") O consejo ("What advice would you give him/her?"), eligiendo la que mejor quede con la persona/situación de la foto.
-   - Pregunta 5: Futuro o planes ("What will happen next?", "What will happen later?", "What is he/she going to do after this?", "What is his wife/her friend going to do?" o "What are his/her plans for the weekend?").
-3. Mantén las preguntas exactamente con ese estilo corto, directo y natural de la lista.
+**B. BANCO DE PREGUNTAS PERSONALES REALES DE EJEMPLO (elige 1 o 2 de estas y genera 2 o 3 nuevas del mismo estilo según los temas del resumen):**
+- "Do you dream regularly? Do you remember your dreams?"
+- "What will you do if someone phones you during the English class?"
+- "When was the last time you went to the doctor's? Why?"
+- "Why are you studying English?"
+- "Are you more of an optimist or a pessimist?"
+- "What rules are there at the place where you work or study?"
+- "Tell us about something you are excellent at and something you are terrible at doing."
+- "Tell us two tips for someone who is starting a new job next Monday."
+- "What kind of people do you get on with? Why?"
+- "Have you ever had the same dream more than once? Describe it."
+- "Are you studying anything at the moment? How long have you studied that? When did you start?"
 
-**Instrucciones para las 3 palabras de vocabulario ("vocabulary"):**
+**C. INSTRUCCIONES PARA LAS 3 PALABRAS DE VOCABULARIO ("vocabulary"):**
 1. Elige 3 palabras o frases útiles en inglés relacionadas directamente con lo que se ve en la foto.
-2. Cada objeto debe tener:
-   - "word": palabra o expresión en inglés.
-   - "meaning": traducción breve en español.
-   - "example": oración corta en inglés usándola sobre esta foto.
+2. Cada objeto debe tener "word" (en inglés), "meaning" (traducción breve en español) y "example" (oración corta en inglés sobre la foto).
 
 **Formato de salida:**
-Devuelve exclusivamente un objeto JSON válido con las propiedades "questions" (5 preguntas) y "vocabulary" (3 objetos).
+Devuelve exclusivamente un objeto JSON válido con las propiedades "questions" (5 strings), "personalQuestions" (4 strings) y "vocabulary" (3 objetos).
 
 **Resumen de gramática y vocabulario del estudiante:**
 ${syllabus}
@@ -599,6 +601,10 @@ IMPORTANT RULES:
             type: 'ARRAY',
             items: { type: 'STRING' },
           },
+          personalQuestions: {
+            type: 'ARRAY',
+            items: { type: 'STRING' },
+          },
           vocabulary: {
             type: 'ARRAY',
             items: {
@@ -612,7 +618,7 @@ IMPORTANT RULES:
             },
           },
         },
-        required: ['questions', 'vocabulary'],
+        required: ['questions', 'personalQuestions', 'vocabulary'],
       };
 
       const { text, modelUsed } = await callGeminiWithFallback(
@@ -623,6 +629,7 @@ IMPORTANT RULES:
 
       const parsed = JSON.parse(text) as {
         questions?: unknown;
+        personalQuestions?: unknown;
         vocabulary?: Array<{ word?: string; meaning?: string; example?: string }>;
       };
       const rawQuestions = Array.isArray(parsed.questions)
@@ -642,6 +649,13 @@ IMPORTANT RULES:
         );
       }
 
+      const rawPersonalQuestions = Array.isArray(parsed.personalQuestions)
+        ? parsed.personalQuestions
+            .map((item) => String(item).trim())
+            .filter((item) => item.length > 0)
+            .slice(0, 4)
+        : [];
+
       const normalizedVocabulary = Array.isArray(parsed.vocabulary)
         ? parsed.vocabulary
             .filter((v) => v && v.word && v.meaning)
@@ -656,6 +670,7 @@ IMPORTANT RULES:
       return new Response(
         JSON.stringify({
           questions: normalizedQuestions,
+          personalQuestions: rawPersonalQuestions,
           vocabulary: normalizedVocabulary,
           modelUsed,
         }),

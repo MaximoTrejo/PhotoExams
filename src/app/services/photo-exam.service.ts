@@ -523,15 +523,38 @@ export class PhotoExamService {
   // COMUNICACIÓN CON GEMINI MEDIANTE SUPABASE EDGE FUNCTION
   // ============================================================================
 
+  private readonly realPersonalQuestionsPool: readonly string[] = [
+    'Do you dream regularly? Do you remember your dreams?',
+    'What will you do if someone phones you during the English class?',
+    "When was the last time you went to the doctor's? Why?",
+    'Why are you studying English?',
+    'Are you more of an optimist or a pessimist?',
+    'What rules are there at the place where you work?',
+    'Tell us about something you are excellent at and something you are terrible at doing.',
+    'Tell us two tips for someone who is starting a new job next Monday.',
+    'What kind of people do you get on with? Why?',
+    'Have you ever had the same dream more than once? Describe it.',
+    'Are you studying anything at the moment? How long have you studied that? When did you start?',
+  ];
+
+  private pickRandomPersonalQuestions(count = 4): string[] {
+    const shuffled = [...this.realPersonalQuestionsPool].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }
+
   /**
-   * Solicita 5 preguntas sencillas en inglés + 3 palabras de vocabulario a Gemini.
+   * Solicita 5 preguntas de la imagen + 4 preguntas personales + 3 palabras de vocabulario a Gemini.
    */
   public async generateQuestions(
     syllabusContent: string,
     imageUrl: string,
     imageBase64?: string,
     imageMimeType?: string
-  ): Promise<{ questions: string[]; vocabulary: VocabularyItem[] }> {
+  ): Promise<{
+    questions: string[];
+    personalQuestions: string[];
+    vocabulary: VocabularyItem[];
+  }> {
     const cleanSyllabus = syllabusContent.trim();
     if (!cleanSyllabus) {
       throw new Error('No existe un resumen válido para generar las preguntas.');
@@ -577,6 +600,18 @@ export class PhotoExamService {
       );
     }
 
+    const rawPersonal = Array.isArray(data.personalQuestions)
+      ? data.personalQuestions
+          .map((q) => String(q).trim())
+          .filter((q) => q.length > 0)
+          .slice(0, 4)
+      : [];
+
+    const personalQuestions =
+      rawPersonal.length === 4
+        ? rawPersonal
+        : [...rawPersonal, ...this.pickRandomPersonalQuestions(4)].slice(0, 4);
+
     const fallbackVocab: VocabularyItem[] = [
       {
         word: 'In the background',
@@ -613,6 +648,7 @@ export class PhotoExamService {
 
     return {
       questions: cleanedQuestions,
+      personalQuestions,
       vocabulary,
     };
   }
