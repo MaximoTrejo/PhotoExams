@@ -42,6 +42,8 @@ import {
   eyeOutline,
   eyeOffOutline,
   checkmarkCircleOutline,
+  gridOutline,
+  listOutline,
 } from 'ionicons/icons';
 import { VocabularyItem } from '../../models/photo-exam.models';
 import { PhotoExamService } from '../../services/photo-exam.service';
@@ -103,6 +105,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   // Por defecto las 3 palabras aparecen ocultas hasta tocar el botón de ojo
   public isVocabVisible = false;
 
+  // Selector entre forma Compacta (una sola hoja sin scroll como la card impresa) y forma Completa (amplia)
+  public viewMode: 'compact' | 'full' = 'compact';
   public isPhotoExpanded = false;
 
   public isCheckingSyllabus = false;
@@ -152,8 +156,14 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       eyeOutline,
       eyeOffOutline,
       checkmarkCircleOutline,
+      gridOutline,
+      listOutline,
     });
     this.resetAllItemAnswers();
+  }
+
+  public setViewMode(mode: 'compact' | 'full'): void {
+    this.viewMode = mode;
   }
 
   public ngOnInit(): void {
