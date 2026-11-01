@@ -654,8 +654,8 @@ export class PhotoExamService {
   }
 
   /**
-   * Solicita a Gemini la corrección constructiva de la respuesta del estudiante
-   * (acepta respuesta escrita, grabación de voz directa, o ambas en un solo paso).
+   * Solicita a Gemini la corrección constructiva de todas las respuestas del estudiante
+   * (acepta respuestas escritas, grabaciones de voz individuales por pregunta, o ambas en un solo paso).
    */
   public async evaluateAnswer(params: {
     syllabusContent: string;
@@ -665,9 +665,14 @@ export class PhotoExamService {
     imageBase64?: string;
     imageMimeType?: string;
     audioBlob?: Blob | null;
+    audioParts?: Array<{ label: string; blob: Blob }>;
   }): Promise<AiFeedback> {
     const cleanAnswer = params.userAnswer.trim();
-    const hasAudio = Boolean(params.audioBlob && params.audioBlob.size > 0);
+    const validAudioBlobs = (params.audioParts || []).filter(
+      (item) => item.blob && item.blob.size > 0
+    );
+    const hasSingleAudio = Boolean(params.audioBlob && params.audioBlob.size > 0);
+    const hasAudio = hasSingleAudio || validAudioBlobs.length > 0;
 
     if (!cleanAnswer && !hasAudio) {
       throw new Error('La respuesta del estudiante está vacía.');
@@ -675,8 +680,19 @@ export class PhotoExamService {
 
     let audioBase64: string | undefined;
     let audioMimeType: string | undefined;
+    let serializedAudioParts:
+      | Array<{ label: string; audioBase64: string; audioMimeType: string }>
+      | undefined;
 
-    if (params.audioBlob && params.audioBlob.size > 0) {
+    if (validAudioBlobs.length > 0) {
+      serializedAudioParts = await Promise.all(
+        validAudioBlobs.map(async (item) => ({
+          label: item.label,
+          audioBase64: await this.blobToBase64(item.blob),
+          audioMimeType: (item.blob.type || 'audio/mp4').split(';')[0].trim(),
+        }))
+      );
+    } else if (params.audioBlob && params.audioBlob.size > 0) {
       audioBase64 = await this.blobToBase64(params.audioBlob);
       audioMimeType = (params.audioBlob.type || 'audio/mp4').split(';')[0].trim();
     }
@@ -695,6 +711,7 @@ export class PhotoExamService {
             imageMimeType: params.imageMimeType,
             audioBase64,
             audioMimeType,
+            audioParts: serializedAudioParts,
           },
         }
       );

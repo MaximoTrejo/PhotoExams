@@ -3,125 +3,141 @@
 }
 
 .main-container {
-  max-width: 860px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 18px 14px 40px;
+  padding: 10px 12px 24px;
   border-radius: 16px;
-
-  &.compact-container {
-    padding: 10px 12px 20px;
-    max-width: 980px;
-  }
 }
 
 .hero-header {
-  margin-bottom: 18px;
-
-  &.hero-compact {
-    margin-bottom: 10px;
-
-    .hero-badge {
-      padding: 3px 9px;
-      font-size: 0.7rem;
-      margin-bottom: 3px;
-    }
-
-    .page-title {
-      font-size: 1.15rem;
-      margin: 0;
-    }
-  }
+  margin-bottom: 10px;
 
   .hero-top-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
   }
 
   .hero-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background: #e8f5e9;
     color: #2e6b40;
-    font-size: 0.78rem;
-    font-weight: 600;
-    padding: 5px 11px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 9px;
     border-radius: 999px;
-    margin-bottom: 6px;
+    margin-bottom: 2px;
   }
 
   .page-title {
-    font-size: 1.55rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: #1e293b;
-    margin: 0 0 6px;
-    letter-spacing: -0.02em;
-  }
-
-  .page-subtitle {
-    font-size: 0.92rem;
-    line-height: 1.5;
-    color: #475569;
     margin: 0;
-    max-width: 62ch;
+    letter-spacing: -0.02em;
   }
 }
 
 .header-controls-group {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
-.view-mode-switcher {
-  display: inline-flex;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 3px;
-  gap: 3px;
+/* ============================================================================
+   ÚNICA HOJA / CARD DE EXAMEN ORAL (Formato idéntico al examen impreso)
+   ============================================================================ */
+.exam-paper-card {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  .mode-btn {
-    border: none;
-    background: transparent;
-    color: #475569;
-    font-size: 0.76rem;
-    font-weight: 600;
-    padding: 5px 9px;
-    border-radius: 7px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    transition: all 0.15s ease;
+/* Parte superior: 1) Talk about the picture (Izquierda: preguntas | Derecha: foto) */
+.exam-top-section {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 14px;
+  align-items: start;
+}
 
-    &.active {
-      background: #4a72b8;
-      color: #ffffff;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+@media (max-width: 600px) and (orientation: portrait) {
+  .exam-paper-card {
+    padding: 11px 12px;
+    gap: 10px;
+  }
+
+  .exam-top-section {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* En celular vertical ponemos la foto arriba y las 5 preguntas justo debajo dentro de la misma card */
+  .exam-picture-photo-col {
+    order: -1;
+  }
+}
+
+.exam-picture-questions-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.exam-section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.exam-section-subtitle {
+  font-size: 0.84rem;
+  color: #334155;
+  margin: 0 0 2px;
+  line-height: 1.35;
+}
+
+/* Lista con viñetas idéntica a la hoja del examen */
+.exam-bullet-list {
+  margin: 2px 0 6px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  li {
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: #1e293b;
+
+    &::marker {
+      color: #0f172a;
+      font-weight: 700;
     }
   }
 }
 
-/* ============================================================================
-   VISTA COMPACTA (Vertical sin scroll) Y MODO TARJETA HORIZONTAL (Exam Card)
-   ============================================================================ */
-.exam-card-board {
-  background: #ffffff;
-  border: 2px solid #cbd5e1;
-  border-radius: 16px;
-  padding: 10px;
-  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.exam-visual-column {
+/* Columna derecha: Fotografía + barra diminuta de 3 palabras */
+.exam-picture-photo-col {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -129,10 +145,9 @@
 
 .compact-photo-box {
   width: 100%;
-  height: 215px;
-  max-height: 235px;
-  flex-shrink: 0;
-  border-radius: 13px;
+  aspect-ratio: 16 / 10;
+  max-height: 220px;
+  border-radius: 10px;
   overflow: hidden;
   position: relative;
   border: 1px solid #cbd5e1;
@@ -143,6 +158,13 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+
+    &::part(image) {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+    }
   }
 
   .zoom-pill {
@@ -151,9 +173,9 @@
     right: 6px;
     background: rgba(15, 23, 42, 0.75);
     color: #ffffff;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    padding: 3px 8px;
+    padding: 3px 7px;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
@@ -163,6 +185,7 @@
 
 .compact-photo-error {
   height: 100%;
+  min-height: 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -171,11 +194,11 @@
   font-size: 0.8rem;
 }
 
-/* Barra mini de 3 palabras (super compacta para dejar la foto grande) */
+/* Barra mini de 3 palabras (oculta por defecto y muy discreta debajo de la foto) */
 .mini-vocab-strip {
   background: #fffbeb;
   border: 1px solid #fde68a;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 4px 8px;
   display: flex;
   flex-direction: column;
@@ -193,14 +216,28 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: 0.71rem;
   font-weight: 700;
   color: #92400e;
 
   ion-icon {
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     color: #d97706;
   }
+}
+
+.vocab-eye-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  font-size: 0.69rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  cursor: pointer;
 }
 
 .mini-vocab-pills-row {
@@ -212,9 +249,9 @@
 .mini-vocab-pill {
   border: 1px solid #fde68a;
   background: #ffffff;
-  border-radius: 7px;
-  padding: 3px 7px;
-  font-size: 0.72rem;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.71rem;
   color: #334155;
   display: inline-flex;
   align-items: center;
@@ -235,115 +272,13 @@
   }
 }
 
-.vocab-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 5px;
-}
-
-.vocab-header {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #92400e;
-  margin: 0;
-
-  ion-icon {
-    font-size: 0.9rem;
-    color: #d97706;
-  }
-}
-
-.vocab-eye-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  color: #92400e;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 999px;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-
-  ion-icon {
-    font-size: 0.84rem;
-  }
-
-  &:hover {
-    background: #fde68a;
-  }
-}
-
-.vocab-skeleton-list,
-.vocab-chips-column {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.vocab-chip-btn {
-  width: 100%;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 4px 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s ease;
-
-  .vocab-word {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .vocab-meaning {
-    font-size: 0.73rem;
-    color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &.active {
-    background: #fef3c7;
-    border-color: #f59e0b;
-
-    .vocab-word {
-      color: #78350f;
-    }
-
-    .vocab-meaning {
-      color: #92400e;
-      font-weight: 600;
-    }
-  }
-}
-
 .vocab-example-banner {
   background: #fefce8;
   border: 1px solid #fde047;
-  border-radius: 9px;
-  padding: 5px 10px;
-  font-size: 0.77rem;
-  line-height: 1.35;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.73rem;
+  line-height: 1.3;
   color: #713f12;
 
   strong {
@@ -355,124 +290,271 @@
   }
 }
 
-.exam-questions-column {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.card-section-tabs {
-  display: flex;
-  gap: 4px;
-  background: #f1f5f9;
-  padding: 3px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
-
-  .section-tab-btn {
-    flex: 1;
-    border: none;
-    background: transparent;
-    color: #475569;
-    font-size: 0.73rem;
-    font-weight: 700;
-    padding: 5px 6px;
-    border-radius: 7px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-
-    &.active {
-      background: #ffffff;
-      color: #1e40af;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
-    }
-  }
-}
-
-.compact-questions-box,
-.personal-questions-box {
+/* ============================================================================
+   CONTROLES DE RESPUESTA INDIVIDUAL POR PREGUNTA / SECCIÓN
+   ============================================================================ */
+.item-answer-box {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 8px 10px;
-}
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 
-.personal-questions-box {
-  background: #fdf4ff;
-  border-color: #f0abfc;
+  &.recording-this {
+    background: #fff5f5;
+    border-color: #f87171;
+  }
 
-  &.classic-personal-box {
-    margin-top: 14px;
-    padding: 12px 14px;
+  &.answered-this {
+    background: #f0fdf4;
+    border-color: #86efac;
   }
 }
 
-.personal-helper-note {
-  margin: 0 0 6px;
-  font-size: 0.74rem;
-  color: #6b21a8;
-  line-height: 1.3;
-}
-
-.personal-questions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.personal-q-item {
-  background: #ffffff;
-  border: 1px solid #e9d5ff;
-  border-radius: 9px;
-  padding: 5px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  &.speaking-now {
-    border-color: #9333ea;
-    background: #faf5ff;
-  }
-}
-
-.personal-q-controls {
+.item-answer-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.item-answer-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.item-answer-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.personal-q-num {
-  background: #f3e8ff !important;
-  color: #6b21a8 !important;
+.answered-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+
+  ion-icon {
+    font-size: 0.85rem;
+  }
+}
+
+.mini-record-btn {
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &.recording {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff;
+  }
+
+  &.has-audio {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.mini-write-btn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+
+  &.active {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    color: #0f172a;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.mini-spinner {
+  width: 13px;
+  height: 13px;
+}
+
+.mini-audio-player-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 2px;
+
+  .mini-native-audio {
+    flex: 1;
+    height: 30px;
+    max-width: 100%;
+  }
+
+  .mini-delete-audio-btn {
+    border: 1px solid #fca5a5;
+    background: #fef2f2;
+    color: #dc2626;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
+.mini-textarea-wrap {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 2px 8px;
+
+  .mini-textarea {
+    font-size: 0.83rem;
+    min-height: 46px;
+    --color: #1e293b;
+  }
+}
+
+/* ============================================================================
+   PARTE INFERIOR DE LA CARD: 2) Answer these questions (Una por una)
+   ============================================================================ */
+.exam-card-divider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 2px 0;
+}
+
+.exam-bottom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.personal-questions-bullet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.personal-question-card-row {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &.speaking-now {
+    border-color: #6366f1;
+    background: #eef2ff;
+  }
+
+  &.recording-this {
+    border-color: #f87171;
+    background: #fff5f5;
+  }
+
+  &.answered-this {
+    border-color: #86efac;
+    background: #f0fdf4;
+  }
+}
+
+.personal-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.personal-listen-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.bullet-dot {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.personal-q-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-right: 2px;
 }
 
 .play-question-btn {
-  flex: 1;
-  min-width: 95px;
-  border: 1px solid #c084fc;
-  background: #f3e8ff;
-  color: #581c87;
-  font-size: 0.76rem;
+  border: 1px solid #a5b4fc;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.74rem;
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 7px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 4px;
   cursor: pointer;
 
   &.active {
-    background: #7e22ce;
-    border-color: #7e22ce;
+    background: #4f46e5;
+    border-color: #4f46e5;
     color: #ffffff;
   }
 }
 
 .slow-question-btn {
   border: 1px solid #cbd5e1;
-  background: #f8fafc;
+  background: #ffffff;
   color: #334155;
   font-size: 0.71rem;
   font-weight: 600;
@@ -501,137 +583,56 @@
   }
 }
 
+.personal-answer-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
 .personal-q-transcript {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #1e293b;
-  background: #f8fafc;
-  border-left: 3px solid #9333ea;
-  padding: 4px 8px;
-  border-radius: 4px;
+  color: #0f172a;
+  background: #ffffff;
+  border-left: 3px solid #4f46e5;
+  padding: 4px 9px;
+  border-radius: 5px;
   line-height: 1.35;
 }
 
-.compact-questions-header {
+/* ============================================================================
+   PIE DE LA CARD: BOTÓN ÚNICO "ENVIAR TODO JUNTO"
+   ============================================================================ */
+.exam-card-footer {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-submit-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 5px;
-  margin-bottom: 7px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 
-  .exam-card-heading {
-    font-size: 0.76rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    color: #1e293b;
-    text-transform: uppercase;
-  }
+.answered-counter {
+  font-size: 0.82rem;
+  color: #475569;
 
-  .exam-card-count {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #1d4ed8;
-    background: #eff6ff;
-    padding: 2px 7px;
-    border-radius: 999px;
-
-    &.personal-badge {
-      color: #6b21a8;
-      background: #f3e8ff;
-    }
+  strong {
+    color: #0f172a;
   }
 }
 
-.compact-generating {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: #3b6ea5;
-  margin-bottom: 6px;
-}
-
-.compact-questions-ordered {
-  list-style: none;
+.send-all-btn {
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-
-  li {
-    display: flex;
-    align-items: flex-start;
-    gap: 7px;
-    font-size: 0.85rem;
-    line-height: 1.32;
-    color: #1e293b;
-  }
-
-  .q-badge {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #dbeafe;
-    color: #1e40af;
-    font-size: 0.74rem;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  .q-text {
-    font-weight: 500;
-  }
-}
-
-.compact-action-bar {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 12px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  &.recording-active {
-    background: #fff5f5;
-    border-color: #fca5a5;
-  }
-
-  &.processing-active {
-    background: #f0f9ff;
-    border-color: #93c5fd;
-  }
-}
-
-.compact-buttons-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-
-  .compact-mic-btn {
-    flex: 1;
-    margin: 0;
-    min-height: 38px;
-    font-size: 0.84rem;
-  }
-
-  .compact-write-toggle {
-    margin: 0;
-    min-height: 38px;
-    font-size: 0.78rem;
-  }
-
-  .compact-send-btn {
-    margin: 0;
-    min-height: 38px;
-    font-size: 0.84rem;
-  }
+  min-height: 42px;
+  font-size: 0.9rem;
 }
 
 .compact-status-line {
@@ -655,28 +656,34 @@
   }
 }
 
-.compact-audio-player-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #dc2626;
+  display: inline-block;
+  animation: pulse-record 1.2s infinite ease-in-out;
+}
 
-  .compact-native-audio {
-    flex: 1;
-    height: 32px;
+@keyframes pulse-record {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.45;
   }
 }
 
-.compact-textarea-wrap {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  padding: 2px 9px;
-
-  .compact-textarea {
-    font-size: 0.85rem;
-    min-height: 54px;
-    --color: #1e293b;
-  }
+.compact-generating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #3b6ea5;
+  margin-bottom: 6px;
 }
 
 .compact-alert {
@@ -725,68 +732,7 @@
   }
 }
 
-/* ============================================================================
-   MODO CELULAR HORIZONTAL (LANDSCAPE EXAM CARD)
-   Cuando el estudiante gira el celular horizontalmente, se muestra como la
-   tarjeta real del examen oral: foto + 3 palabras a la izquierda, y las 5
-   preguntas + micrófono a la derecha.
-   ============================================================================ */
-@media (orientation: landscape) {
-  .exam-card-board {
-    display: grid;
-    grid-template-columns: 5fr 7fr;
-    gap: 12px;
-    align-items: stretch;
-    padding: 12px;
-  }
-
-  .exam-visual-column {
-    justify-content: space-between;
-  }
-
-  .compact-top-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .compact-photo-box {
-    width: 100%;
-    height: 155px;
-    max-height: 175px;
-  }
-
-  .exam-questions-column {
-    justify-content: space-between;
-  }
-
-  .compact-questions-box {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-}
-
-/* ============================================================================
-   VISTA CLÁSICA ORIGINAL + SECCIÓN DE 3 PALABRAS DE VOCABULARIO
-   ============================================================================ */
-.classic-vocab-section {
-  margin-top: 14px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 14px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  .classic-vocab-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 8px;
-  }
-}
-
+/* Tarjetas de estado (cargando / resumen vacío) */
 .surface-card {
   background: #ffffff;
   border-radius: 16px;
@@ -816,26 +762,6 @@
   ion-card-content {
     padding: 12px 22px 22px;
   }
-}
-
-.card-header-flex {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.pastel-badge {
-  --background: #eff6ff;
-  --color: #1d4ed8;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: 0.76rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .centered-status {
@@ -868,33 +794,6 @@
   }
 }
 
-.photo-frame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: 440px;
-  background: #f1f5f9;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.practice-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-
-  &::part(image) {
-    object-fit: cover;
-    width: 100%;
-    height: 100%;
-  }
-}
-
 .photo-loading-overlay {
   position: absolute;
   inset: 0;
@@ -910,206 +809,11 @@
   font-weight: 500;
 }
 
-.photo-error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 28px;
-  text-align: center;
-  color: #475569;
-
-  .error-photo-icon {
-    font-size: 2.5rem;
-    color: #94a3b8;
-  }
-}
-
-.generating-caption {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 12px;
-  font-size: 0.92rem;
-  color: #3b6ea5;
-  font-weight: 500;
-}
-
-.questions-list {
-  background: transparent;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.question-item {
-  --background: #f8fafc;
-  --padding-start: 14px;
-  --padding-end: 14px;
-  --inner-padding-end: 0;
-  --min-height: 52px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-}
-
-.question-number {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #dbeafe;
-  color: #1e40af;
-  font-weight: 700;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.question-text {
-  font-size: 0.96rem;
-  font-weight: 500;
-  line-height: 1.45;
-  color: #1e293b;
-  margin: 8px 0;
-}
-
 .retry-row {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
-}
-
-.answer-helper {
-  font-size: 0.92rem;
-  line-height: 1.5;
-  color: #475569;
-  margin: 0 0 14px;
-}
-
-.voice-recorder-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 14px 16px;
-  margin-bottom: 14px;
-
-  &.recording-active {
-    background: #fff5f5;
-    border-color: #fca5a5;
-  }
-
-  &.transcribing-active {
-    background: #eff6ff;
-    border-color: #bfdbfe;
-  }
-}
-
-.voice-controls-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
-.record-voice-btn {
-  --background: #e8f0fe;
-  --background-hover: #dbeafe;
-  --background-activated: #bfdbfe;
-  --color: #1e40af;
-  --border-radius: 12px;
-  --box-shadow: none;
-  font-weight: 600;
-  text-transform: none;
-  min-height: 42px;
-}
-
-.stop-voice-btn {
-  --background: #dc2626;
-  --background-hover: #b91c1c;
-  --background-activated: #991b1b;
-  --color: #ffffff;
-  --border-radius: 12px;
-  font-weight: 600;
-  text-transform: none;
-  min-height: 42px;
-}
-
-.pulse-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #dc2626;
-  display: inline-block;
-  animation: pulse-record 1.2s infinite ease-in-out;
-}
-
-.audio-ready-banner {
-  margin-top: 10px;
-  padding: 9px 12px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  border-radius: 10px;
-  color: #065f46;
-  font-size: 0.85rem;
-}
-
-.audio-playback-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #cbd5e1;
-
-  .audio-icon {
-    font-size: 1.3rem;
-    color: #4a72b8;
-  }
-
-  .native-audio {
-    height: 36px;
-    flex: 1;
-    max-width: 100%;
-  }
-}
-
-@keyframes pulse-record {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 0.45;
-  }
-}
-
-.textarea-container {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 8px 14px;
-}
-
-.answer-textarea {
-  --color: #1e293b;
-  --placeholder-color: #94a3b8;
-  font-size: 0.96rem;
-  line-height: 1.55;
-  min-height: 120px;
-}
-
-.submit-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 
 .primary-btn {
@@ -1120,7 +824,7 @@
   --border-radius: 11px;
   font-weight: 600;
   text-transform: none;
-  min-height: 42px;
+  min-height: 40px;
 }
 
 .secondary-btn {
@@ -1129,7 +833,7 @@
   --border-radius: 11px;
   font-weight: 600;
   text-transform: none;
-  min-height: 38px;
+  min-height: 36px;
 }
 
 .btn-spinner {

@@ -22,48 +22,20 @@
 </ion-header>
 
 <ion-content class="page-content">
-  <div class="main-container" [class.compact-container]="viewMode === 'compact'">
-    <!-- Encabezado con selector de Vista Compacta / Vista Clásica y botón Nueva Fotografía -->
-    <section class="hero-header" [class.hero-compact]="viewMode === 'compact'">
+  <div class="main-container compact-container">
+    <!-- Barra superior compacta: título y botón para generar otra Card -->
+    <section class="hero-header hero-compact">
       <div class="hero-top-row">
         <div class="hero-title-group">
           <div class="hero-badge">
             <ion-icon name="camera-outline"></ion-icon>
-            <span>TALK ABOUT THE PICTURE</span>
+            <span>ORAL EXAM CARD</span>
           </div>
-          <h1 class="page-title">Práctica de Examen Oral</h1>
-          @if (viewMode === 'classic') {
-            <p class="page-subtitle">
-              Observa la escena, aprende las 3 palabras de vocabulario y responde las 5
-              preguntas hablando con el micrófono o por escrito.
-            </p>
-          }
+          <h1 class="page-title">Tarjeta de Examen Oral</h1>
         </div>
 
         @if (hasSavedSyllabus) {
           <div class="header-controls-group">
-            <!-- Selector para alternar entre Vista Compacta (sin scroll) y Vista Clásica -->
-            <div class="view-mode-switcher" role="group" aria-label="Modo de vista">
-              <button
-                type="button"
-                class="mode-btn"
-                [class.active]="viewMode === 'compact'"
-                (click)="setViewMode('compact')"
-              >
-                <ion-icon name="grid-outline"></ion-icon>
-                <span>Compacta / Card</span>
-              </button>
-              <button
-                type="button"
-                class="mode-btn"
-                [class.active]="viewMode === 'classic'"
-                (click)="setViewMode('classic')"
-              >
-                <ion-icon name="list-outline"></ion-icon>
-                <span>Clásica</span>
-              </button>
-            </div>
-
             <ion-button
               fill="outline"
               size="small"
@@ -74,11 +46,11 @@
                 isSubmittingAnswer ||
                 isCheckingSyllabus ||
                 isRecordingAudio ||
-                isTranscribingAudio
+                isProcessingAudio
               "
             >
               <ion-icon slot="start" name="refresh-outline"></ion-icon>
-              <span>Otra foto</span>
+              <span>Otra Card</span>
             </ion-button>
           </div>
         }
@@ -90,7 +62,7 @@
       <ion-card class="surface-card status-card">
         <ion-card-content class="centered-status">
           <ion-spinner name="crescent"></ion-spinner>
-          <p>Recuperando tu resumen de inglés desde Supabase...</p>
+          <p>Cargando tu tarjeta de examen...</p>
         </ion-card-content>
       </ion-card>
     } @else if (syllabusError) {
@@ -120,9 +92,8 @@
         </ion-card-header>
         <ion-card-content>
           <p class="empty-description">
-            Para que la inteligencia artificial pueda generar preguntas adaptadas a tus
-            temas de clase, primero debes guardar tus apuntes de gramática y vocabulario
-            en la pantalla de configuración.
+            Para que la inteligencia artificial pueda generar tarjetas de examen adaptadas a
+            tus temas de clase, primero debes guardar tus apuntes de gramática y vocabulario.
           </p>
           <ion-button class="primary-btn" (click)="goToSyllabus()">
             <ion-icon slot="start" name="book-outline"></ion-icon>
@@ -130,364 +101,497 @@
           </ion-button>
         </ion-card-content>
       </ion-card>
-    } @else if (viewMode === 'compact') {
+    } @else {
       <!-- ========================================================================= -->
-      <!-- VISTA COMPACTA (Vertical sin scroll) Y MODO TARJETA AL GIRAR EL CELULAR   -->
+      <!-- ÚNICA CARD COMPACTA DE EXAMEN (Formato hoja real de examen oral)          -->
       <!-- ========================================================================= -->
-      <div class="exam-card-board">
-        <!-- Columna / Bloque Izquierdo: Foto grande + barra diminuta de 3 palabras con botón de ojo -->
-        <div class="exam-visual-column">
-          <!-- Fotografía grande (tocable para pantalla completa) -->
-          <div
-            class="compact-photo-box"
-            (click)="togglePhotoExpanded()"
-            role="button"
-            tabindex="0"
-            aria-label="Ampliar fotografía"
-          >
-            @if (isLoadingImage) {
-              <div class="photo-loading-overlay">
-                <ion-spinner name="crescent"></ion-spinner>
+      <div class="exam-paper-card">
+        <!-- PARTE SUPERIOR DE LA CARD: 1) Talk about the picture (Izquierda: preguntas | Derecha: foto) -->
+        <div class="exam-top-section">
+          <!-- Columna Izquierda: 1) Talk about the picture + 5 viñetas + respuesta de la foto -->
+          <div class="exam-picture-questions-col">
+            <div class="section-title-row">
+              <h2 class="exam-section-title">1) Talk about the picture</h2>
+              @if (isItemAnswered('picture')) {
+                <span class="answered-pill">
+                  <ion-icon name="checkmark-circle-outline"></ion-icon>
+                  <span>Lista</span>
+                </span>
+              }
+            </div>
+            <p class="exam-section-subtitle">Use the questions as a guide:</p>
+
+            @if (isGeneratingQuestions) {
+              <div class="compact-generating">
+                <ion-spinner name="dots"></ion-spinner>
+                <span>Generando tarjeta de examen...</span>
               </div>
+              <div class="compact-skeleton-list">
+                @for (item of skeletonItems; track item) {
+                  <ion-skeleton-text
+                    [animated]="true"
+                    style="width: 92%; height: 14px; border-radius: 4px; margin-bottom: 6px"
+                  ></ion-skeleton-text>
+                }
+              </div>
+            } @else if (questionsError) {
+              <div class="alert-banner alert-error" role="alert">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                <span>{{ questionsError }}</span>
+              </div>
+              <div class="retry-row">
+                <ion-button size="small" class="primary-btn" (click)="retryGenerateQuestions()">
+                  <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                  Reintentar
+                </ion-button>
+              </div>
+            } @else {
+              <ul class="exam-bullet-list">
+                @for (question of questions; track $index) {
+                  <li>{{ question }}</li>
+                }
+              </ul>
             }
 
-            @if (hasImageError) {
-              <div class="compact-photo-error">
-                <ion-icon name="image-outline"></ion-icon>
-                <span>No se pudo cargar la imagen</span>
+            <!-- Controles para responder la Parte 1 (Talk about the picture) -->
+            @if (questions.length > 0) {
+              <div
+                class="item-answer-box picture-answer-box"
+                [class.recording-this]="isRecordingAudio && activeRecordingKey === 'picture'"
+                [class.answered-this]="isItemAnswered('picture')"
+              >
+                <div class="item-answer-actions">
+                  <span class="item-answer-label">Tu descripción (Parte 1):</span>
+
+                  <div class="item-answer-btns">
+                    <!-- Botón grabar voz para la foto -->
+                    <button
+                      type="button"
+                      class="mini-record-btn"
+                      [class.recording]="isRecordingAudio && activeRecordingKey === 'picture'"
+                      [class.has-audio]="getItemState('picture').audioBlob !== null"
+                      (click)="toggleItemRecording('picture')"
+                      [disabled]="
+                        isGeneratingQuestions ||
+                        isSubmittingAnswer ||
+                        isProcessingAudio ||
+                        (isRecordingAudio && activeRecordingKey !== 'picture') ||
+                        (getItemState('picture').audioBlob !== null &&
+                          !(isRecordingAudio && activeRecordingKey === 'picture'))
+                      "
+                    >
+                      @if (isRecordingAudio && activeRecordingKey === 'picture') {
+                        <ion-icon name="stop-circle-outline"></ion-icon>
+                        <span>Detener ({{ formattedRecordingTime }})</span>
+                      } @else if (isProcessingAudio && processingAudioKey === 'picture') {
+                        <ion-spinner name="crescent" class="mini-spinner"></ion-spinner>
+                        <span>Procesando...</span>
+                      } @else if (getItemState('picture').audioBlob !== null) {
+                        <ion-icon name="checkmark-circle-outline"></ion-icon>
+                        <span>Audio grabado</span>
+                      } @else {
+                        <ion-icon name="mic-outline"></ion-icon>
+                        <span>Grabar audio</span>
+                      }
+                    </button>
+
+                    <!-- Botón escribir texto para la foto -->
+                    <button
+                      type="button"
+                      class="mini-write-btn"
+                      [class.active]="
+                        getItemState('picture').showTextInput ||
+                        getItemState('picture').text.trim().length > 0
+                      "
+                      (click)="toggleItemTextInput('picture')"
+                      [disabled]="isRecordingAudio || isProcessingAudio || isSubmittingAnswer"
+                    >
+                      <ion-icon name="create-outline"></ion-icon>
+                      <span>
+                        {{
+                          getItemState('picture').showTextInput ||
+                          getItemState('picture').text.trim().length > 0
+                            ? 'Ocultar texto'
+                            : 'Escribir'
+                        }}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Reproductor del audio grabado en Parte 1 -->
+                @if (
+                  getItemState('picture').audioUrl &&
+                  !(isRecordingAudio && activeRecordingKey === 'picture')
+                ) {
+                  <div class="mini-audio-player-row">
+                    <audio
+                      [src]="getItemState('picture').audioUrl"
+                      controls
+                      class="mini-native-audio"
+                    ></audio>
+                    <button
+                      type="button"
+                      class="mini-delete-audio-btn"
+                      title="Borrar audio de la foto para volver a grabar"
+                      (click)="clearItemAudio('picture')"
+                      [disabled]="isRecordingAudio || isProcessingAudio || isSubmittingAnswer"
+                    >
+                      <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                  </div>
+                }
+
+                <!-- Cuadro de texto desplegable para Parte 1 -->
+                @if (
+                  getItemState('picture').showTextInput ||
+                  getItemState('picture').text.trim().length > 0
+                ) {
+                  <div class="mini-textarea-wrap">
+                    <ion-textarea
+                      class="mini-textarea"
+                      placeholder="Escribe aquí tu descripción de la fotografía en inglés..."
+                      [rows]="2"
+                      [autoGrow]="true"
+                      [ngModel]="getItemState('picture').text"
+                      (ngModelChange)="onItemTextChange('picture', $event)"
+                      [disabled]="isRecordingAudio || isProcessingAudio || isSubmittingAnswer"
+                    ></ion-textarea>
+                  </div>
+                }
               </div>
-            } @else if (displayImageUrl) {
-              <ion-img
-                class="practice-image"
-                [src]="displayImageUrl"
-                alt="Fotografía de práctica oral"
-                (ionImgWillLoad)="onImageWillLoad()"
-                (ionImgDidLoad)="onImageDidLoad()"
-                (ionError)="onImageError()"
-              ></ion-img>
-              <span class="zoom-pill">
-                <ion-icon name="expand-outline"></ion-icon>
-                <span>Ampliar</span>
-              </span>
             }
           </div>
 
-          <!-- Barra mini de 3 palabras (oculta por defecto y muy pequeña para darle prioridad a la foto) -->
-          <div class="mini-vocab-strip">
-            <div class="mini-vocab-bar">
-              <span class="mini-vocab-label">
-                <ion-icon name="bulb-outline"></ion-icon>
-                <span>3 palabras útiles</span>
-              </span>
-
-              <button
-                type="button"
-                class="vocab-eye-btn"
-                (click)="toggleVocabVisibility()"
-                [attr.aria-label]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
-              >
-                <ion-icon [name]="isVocabVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-                <span>{{ isVocabVisible ? 'Ocultar' : 'Ver palabras' }}</span>
-              </button>
-            </div>
-
-            @if (isVocabVisible && vocabulary.length > 0) {
-              <div class="mini-vocab-pills-row">
-                @for (item of vocabulary; track $index) {
-                  <button
-                    type="button"
-                    class="mini-vocab-pill"
-                    [class.active]="selectedVocabIndex === $index"
-                    (click)="selectVocab($index)"
-                  >
-                    <strong>{{ item.word }}</strong>
-                    <span>({{ item.meaning }})</span>
-                  </button>
-                }
-              </div>
-
-              @if (vocabulary[selectedVocabIndex]) {
-                <div class="vocab-example-banner">
-                  <strong>Ej:</strong>
-                  <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
+          <!-- Columna Derecha: Fotografía grande al lado de las preguntas + botón diminuto de 3 palabras -->
+          <div class="exam-picture-photo-col">
+            <div
+              class="compact-photo-box"
+              (click)="togglePhotoExpanded()"
+              role="button"
+              tabindex="0"
+              aria-label="Ampliar fotografía"
+            >
+              @if (isLoadingImage) {
+                <div class="photo-loading-overlay">
+                  <ion-spinner name="crescent"></ion-spinner>
                 </div>
               }
-            }
+
+              @if (hasImageError) {
+                <div class="compact-photo-error">
+                  <ion-icon name="image-outline"></ion-icon>
+                  <span>No se pudo cargar la imagen</span>
+                </div>
+              } @else if (displayImageUrl) {
+                <ion-img
+                  class="practice-image"
+                  [src]="displayImageUrl"
+                  alt="Fotografía de práctica oral"
+                  (ionImgWillLoad)="onImageWillLoad()"
+                  (ionImgDidLoad)="onImageDidLoad()"
+                  (ionError)="onImageError()"
+                ></ion-img>
+                <span class="zoom-pill">
+                  <ion-icon name="expand-outline"></ion-icon>
+                  <span>Ampliar</span>
+                </span>
+              }
+            </div>
+
+            <!-- Barra diminuta de 3 palabras de vocabulario (oculta por defecto con botón de ojo) -->
+            <div class="mini-vocab-strip">
+              <div class="mini-vocab-bar">
+                <span class="mini-vocab-label">
+                  <ion-icon name="bulb-outline"></ion-icon>
+                  <span>3 palabras sugeridas</span>
+                </span>
+
+                <button
+                  type="button"
+                  class="vocab-eye-btn"
+                  (click)="toggleVocabVisibility()"
+                  [attr.aria-label]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
+                >
+                  <ion-icon [name]="isVocabVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+                  <span>{{ isVocabVisible ? 'Ocultar' : 'Ver palabras' }}</span>
+                </button>
+              </div>
+
+              @if (isVocabVisible && vocabulary.length > 0) {
+                <div class="mini-vocab-pills-row">
+                  @for (item of vocabulary; track $index) {
+                    <button
+                      type="button"
+                      class="mini-vocab-pill"
+                      [class.active]="selectedVocabIndex === $index"
+                      (click)="selectVocab($index)"
+                    >
+                      <strong>{{ item.word }}</strong>
+                      <span>({{ item.meaning }})</span>
+                    </button>
+                  }
+                </div>
+
+                @if (vocabulary[selectedVocabIndex]) {
+                  <div class="vocab-example-banner">
+                    <strong>Ej:</strong>
+                    <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
+                  </div>
+                }
+              }
+            </div>
           </div>
         </div>
 
-        <!-- Columna / Bloque Derecho: 5 Preguntas de la Foto + 4 Preguntas Personales en Audio + Respuesta -->
-        <div class="exam-questions-column">
-          <!-- Selector rápido de sección dentro de la misma Card -->
-          <div class="card-section-tabs" role="tablist">
-            <button
-              type="button"
-              class="section-tab-btn"
-              [class.active]="examSectionTab === 'both'"
-              (click)="setExamSectionTab('both')"
-            >
-              📋 Card Completa
-            </button>
-            <button
-              type="button"
-              class="section-tab-btn"
-              [class.active]="examSectionTab === 'picture'"
-              (click)="setExamSectionTab('picture')"
-            >
-              🖼️ 1. Picture (5)
-            </button>
-            <button
-              type="button"
-              class="section-tab-btn"
-              [class.active]="examSectionTab === 'personal'"
-              (click)="setExamSectionTab('personal')"
-            >
-              🎧 2. Personales (4)
-            </button>
+        <!-- Separador interno de la misma hoja de examen -->
+        <hr class="exam-card-divider" />
+
+        <!-- PARTE INFERIOR DE LA CARD: 2) Answer these questions (Responder de a una) -->
+        <div class="exam-bottom-section">
+          <div class="bottom-section-header">
+            <div>
+              <h2 class="exam-section-title">2) Answer these questions</h2>
+              <p class="exam-section-subtitle">
+                Escucha cada pregunta con <strong>🔊 Escuchar</strong> (o toca
+                <strong>👁️ Texto</strong> si no la sacas de oído) y respóndelas
+                <strong>de a una</strong> por audio o texto:
+              </p>
+            </div>
           </div>
 
-          <!-- PARTE 1 DE LA CARD: TALK ABOUT THE PICTURE (5 preguntas sobre la foto) -->
-          @if (examSectionTab === 'both' || examSectionTab === 'picture') {
-            <div class="compact-questions-box">
-              <div class="compact-questions-header">
-                <span class="exam-card-heading">1. TALK ABOUT THE PICTURE</span>
-                <span class="exam-card-count">5 Questions</span>
-              </div>
-
-              @if (isGeneratingQuestions) {
-                <div class="compact-generating">
-                  <ion-spinner name="dots"></ion-spinner>
-                  <span>Generando preguntas del examen...</span>
-                </div>
-                <div class="compact-skeleton-list">
-                  @for (item of skeletonItems; track item) {
-                    <ion-skeleton-text
-                      [animated]="true"
-                      style="width: 94%; height: 14px; border-radius: 5px; margin-bottom: 5px"
-                    ></ion-skeleton-text>
-                  }
-                </div>
-              } @else if (questionsError) {
-                <div class="alert-banner alert-error" role="alert">
-                  <ion-icon name="alert-circle-outline"></ion-icon>
-                  <span>{{ questionsError }}</span>
-                </div>
-                <div class="retry-row">
-                  <ion-button size="small" class="primary-btn" (click)="retryGenerateQuestions()">
-                    <ion-icon slot="start" name="refresh-outline"></ion-icon>
-                    Reintentar
-                  </ion-button>
-                </div>
-              } @else {
-                <ol class="compact-questions-ordered">
-                  @for (question of questions; track $index) {
-                    <li>
-                      <span class="q-badge">{{ $index + 1 }}</span>
-                      <span class="q-text">{{ question }}</span>
-                    </li>
-                  }
-                </ol>
-              }
+          @if (isGeneratingQuestions && personalQuestions.length === 0) {
+            <div class="compact-skeleton-list">
+              <ion-skeleton-text
+                [animated]="true"
+                style="width: 90%; height: 32px; border-radius: 6px; margin-bottom: 6px"
+              ></ion-skeleton-text>
+              <ion-skeleton-text
+                [animated]="true"
+                style="width: 86%; height: 32px; border-radius: 6px; margin-bottom: 6px"
+              ></ion-skeleton-text>
             </div>
-          }
+          } @else {
+            <ul class="personal-questions-bullet-list">
+              @for (pQuestion of personalQuestions; track $index) {
+                @let pKey = getPersonalKey($index);
+                @let pState = getItemState(pKey);
+                <li
+                  class="personal-question-card-row"
+                  [class.speaking-now]="speakingPersonalIndex === $index"
+                  [class.recording-this]="isRecordingAudio && activeRecordingKey === pKey"
+                  [class.answered-this]="isItemAnswered(pKey)"
+                >
+                  <!-- Fila principal: viñeta + escuchar pregunta + ver texto + botones de responder esta pregunta -->
+                  <div class="personal-row-top">
+                    <div class="personal-listen-group">
+                      <span class="bullet-dot">•</span>
+                      <span class="personal-q-title">Question {{ $index + 1 }}</span>
 
-          <!-- PARTE 2 DE LA CARD: 4 PREGUNTAS PERSONALES EN AUDIO (con botón para transcribir a texto si no la sacas) -->
-          @if (examSectionTab === 'both' || examSectionTab === 'personal') {
-            <div class="personal-questions-box">
-              <div class="compact-questions-header">
-                <span class="exam-card-heading">2. PERSONAL QUESTIONS (AUDIO)</span>
-                <span class="exam-card-count personal-badge">4 Oral Questions</span>
-              </div>
+                      <!-- Escuchar pregunta en inglés -->
+                      <button
+                        type="button"
+                        class="play-question-btn"
+                        [class.active]="speakingPersonalIndex === $index"
+                        (click)="speakPersonalQuestion($index, false)"
+                      >
+                        <ion-icon name="volume-high-outline"></ion-icon>
+                        <span>
+                          {{ speakingPersonalIndex === $index ? 'Sonando...' : 'Escuchar' }}
+                        </span>
+                      </button>
 
-              <p class="personal-helper-note">
-                Toca <strong>🔊 Escuchar</strong> para oír la pregunta como en el examen oral. Si no
-                la entiendes, toca el ojo <strong>👁️ Texto</strong> para leerla.
-              </p>
+                      <!-- Escuchar lento -->
+                      <button
+                        type="button"
+                        class="slow-question-btn"
+                        (click)="speakPersonalQuestion($index, true)"
+                        title="Escuchar más lento"
+                      >
+                        🐢 Lento
+                      </button>
 
-              @if (isGeneratingQuestions && personalQuestions.length === 0) {
-                <div class="compact-skeleton-list">
-                  <ion-skeleton-text [animated]="true" style="width: 90%; height: 28px; border-radius: 6px; margin-bottom: 5px"></ion-skeleton-text>
-                  <ion-skeleton-text [animated]="true" style="width: 90%; height: 28px; border-radius: 6px; margin-bottom: 5px"></ion-skeleton-text>
-                </div>
-              } @else {
-                <div class="personal-questions-list">
-                  @for (pQuestion of personalQuestions; track $index) {
-                    <div class="personal-q-item" [class.speaking-now]="speakingPersonalIndex === $index">
-                      <div class="personal-q-controls">
-                        <span class="q-badge personal-q-num">{{ $index + 1 }}</span>
+                      <!-- Mostrar / ocultar pregunta escrita -->
+                      <button
+                        type="button"
+                        class="reveal-question-btn"
+                        [class.revealed]="revealedPersonalMap[$index]"
+                        (click)="togglePersonalQuestionTranscript($index)"
+                      >
+                        <ion-icon
+                          [name]="revealedPersonalMap[$index] ? 'eye-off-outline' : 'eye-outline'"
+                        ></ion-icon>
+                        <span>{{ revealedPersonalMap[$index] ? 'Ocultar' : 'Texto' }}</span>
+                      </button>
+                    </div>
 
-                        <!-- Botón para escuchar la pregunta en inglés -->
-                        <button
-                          type="button"
-                          class="play-question-btn"
-                          [class.active]="speakingPersonalIndex === $index"
-                          (click)="speakPersonalQuestion($index, false)"
-                        >
-                          <ion-icon name="volume-high-outline"></ion-icon>
-                          <span>{{ speakingPersonalIndex === $index ? 'Sonando...' : 'Escuchar' }}</span>
-                        </button>
-
-                        <!-- Botón lento por si quiere escuchar más pausado -->
-                        <button
-                          type="button"
-                          class="slow-question-btn"
-                          (click)="speakPersonalQuestion($index, true)"
-                          title="Escuchar más lento"
-                        >
-                          🐢 Lento
-                        </button>
-
-                        <!-- Botón para ver la pregunta escrita en caso de que no la saque de oído -->
-                        <button
-                          type="button"
-                          class="reveal-question-btn"
-                          [class.revealed]="revealedPersonalMap[$index]"
-                          (click)="togglePersonalQuestionTranscript($index)"
-                        >
-                          <ion-icon [name]="revealedPersonalMap[$index] ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-                          <span>{{ revealedPersonalMap[$index] ? 'Ocultar' : 'Texto' }}</span>
-                        </button>
-                      </div>
-
-                      @if (revealedPersonalMap[$index]) {
-                        <div class="personal-q-transcript">
-                          {{ pQuestion }}
-                        </div>
+                    <!-- Controles para responder ESTA pregunta individualmente -->
+                    <div class="personal-answer-group">
+                      @if (isItemAnswered(pKey)) {
+                        <span class="answered-pill">
+                          <ion-icon name="checkmark-circle-outline"></ion-icon>
+                          <span>Lista</span>
+                        </span>
                       }
+
+                      <button
+                        type="button"
+                        class="mini-record-btn"
+                        [class.recording]="isRecordingAudio && activeRecordingKey === pKey"
+                        [class.has-audio]="pState.audioBlob !== null"
+                        (click)="toggleItemRecording(pKey)"
+                        [disabled]="
+                          isGeneratingQuestions ||
+                          isSubmittingAnswer ||
+                          isProcessingAudio ||
+                          (isRecordingAudio && activeRecordingKey !== pKey) ||
+                          (pState.audioBlob !== null &&
+                            !(isRecordingAudio && activeRecordingKey === pKey))
+                        "
+                      >
+                        @if (isRecordingAudio && activeRecordingKey === pKey) {
+                          <ion-icon name="stop-circle-outline"></ion-icon>
+                          <span>Detener ({{ formattedRecordingTime }})</span>
+                        } @else if (isProcessingAudio && processingAudioKey === pKey) {
+                          <ion-spinner name="crescent" class="mini-spinner"></ion-spinner>
+                          <span>Procesando...</span>
+                        } @else if (pState.audioBlob !== null) {
+                          <ion-icon name="checkmark-circle-outline"></ion-icon>
+                          <span>Audio listo</span>
+                        } @else {
+                          <ion-icon name="mic-outline"></ion-icon>
+                          <span>Responder audio</span>
+                        }
+                      </button>
+
+                      <button
+                        type="button"
+                        class="mini-write-btn"
+                        [class.active]="pState.showTextInput || pState.text.trim().length > 0"
+                        (click)="toggleItemTextInput(pKey)"
+                        [disabled]="isRecordingAudio || isProcessingAudio || isSubmittingAnswer"
+                      >
+                        <ion-icon name="create-outline"></ion-icon>
+                        <span>
+                          {{
+                            pState.showTextInput || pState.text.trim().length > 0
+                              ? 'Ocultar'
+                              : 'Escribir'
+                          }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Texto transcrito de la pregunta cuando el usuario toca "Texto" -->
+                  @if (revealedPersonalMap[$index]) {
+                    <div class="personal-q-transcript">
+                      {{ pQuestion }}
                     </div>
                   }
-                </div>
+
+                  <!-- Mini reproductor de audio grabado para ESTA pregunta personal -->
+                  @if (pState.audioUrl && !(isRecordingAudio && activeRecordingKey === pKey)) {
+                    <div class="mini-audio-player-row">
+                      <audio
+                        [src]="pState.audioUrl"
+                        controls
+                        class="mini-native-audio"
+                      ></audio>
+                      <button
+                        type="button"
+                        class="mini-delete-audio-btn"
+                        title="Borrar audio de esta pregunta para volver a grabar"
+                        (click)="clearItemAudio(pKey)"
+                        [disabled]="isRecordingAudio || isProcessingAudio || isSubmittingAnswer"
+                      >
+                        <ion-icon name="trash-outline"></ion-icon>
+                      </button>
+                    </div>
+                  }
+
+                  <!-- Campo de texto individual para ESTA pregunta personal -->
+                  @if (pState.showTextInput || pState.text.trim().length > 0) {
+                    <div class="mini-textarea-wrap">
+                      <ion-textarea
+                        class="mini-textarea"
+                        [placeholder]="
+                          'Escribe tu respuesta para Question ' + ($index + 1) + ' en inglés...'
+                        "
+                        [rows]="2"
+                        [autoGrow]="true"
+                        [ngModel]="pState.text"
+                        (ngModelChange)="onItemTextChange(pKey, $event)"
+                        [disabled]="isRecordingAudio || isProcessingAudio || isSubmittingAnswer"
+                      ></ion-textarea>
+                    </div>
+                  }
+                </li>
               }
+            </ul>
+          }
+        </div>
+
+        <!-- PIE DE LA CARD: Estado global y botón único "Enviar todo junto" -->
+        <div class="exam-card-footer">
+          @if (isRecordingAudio) {
+            <div class="compact-status-line recording-text">
+              <span class="pulse-dot"></span>
+              <span>
+                Grabando audio... Toca "Detener" cuando termines esta respuesta (los demás botones
+                de grabación están bloqueados).
+              </span>
             </div>
           }
 
-          <!-- Barra de grabación de voz y envío directo integrada en la misma vista -->
-          <div
-            class="compact-action-bar"
-            [class.recording-active]="isRecordingAudio"
-            [class.processing-active]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
-          >
-            <div class="compact-buttons-row">
-              <!-- Botón principal de micrófono -->
-              <ion-button
-                [class]="isRecordingAudio ? 'stop-voice-btn compact-mic-btn' : 'record-voice-btn compact-mic-btn'"
-                (click)="toggleVoiceRecording()"
-                [disabled]="
-                  isGeneratingQuestions ||
-                  isProcessingAudio ||
-                  isTranscribingAudio ||
-                  isSubmittingAnswer ||
-                  recordedAudioBlob !== null ||
-                  questions.length === 0
-                "
-              >
-                @if (isRecordingAudio) {
-                  <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
-                  <span>Detener ({{ formattedRecordingTime }})</span>
-                } @else if (isProcessingAudio || isTranscribingAudio || isSubmittingAnswer) {
-                  <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
-                  <span>Procesando...</span>
-                } @else if (recordedAudioBlob) {
-                  <ion-icon slot="start" name="mic-outline"></ion-icon>
-                  <span>Audio listo</span>
-                } @else {
-                  <ion-icon slot="start" name="mic-outline"></ion-icon>
-                  <span>Grabar voz</span>
-                }
-              </ion-button>
+          @if (isProcessingAudio || isSubmittingAnswer) {
+            <div class="compact-status-line processing-text">
+              <ion-spinner name="crescent"></ion-spinner>
+              <span>
+                {{
+                  isSubmittingAnswer
+                    ? 'Enviando todas tus respuestas juntas y evaluando con IA...'
+                    : 'Procesando tu grabación de audio (espera un instante)...'
+                }}
+              </span>
+            </div>
+          }
 
-              <!-- Botón para abrir/cerrar cuadro de texto opcional -->
-              <ion-button
-                fill="outline"
-                size="small"
-                class="secondary-btn compact-write-toggle"
-                (click)="toggleCompactTextInput()"
-                [disabled]="isRecordingAudio || isSubmittingAnswer"
-              >
-                <ion-icon slot="start" name="create-outline"></ion-icon>
-                <span>{{ showCompactTextInput || userAnswer.trim() ? 'Ocultar texto' : 'Escribir' }}</span>
-              </ion-button>
+          @if (voiceError || answerError) {
+            <div class="alert-banner alert-error compact-alert" role="alert">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>{{ voiceError || answerError }}</span>
+            </div>
+          }
 
-              <!-- Botón Enviar Respuesta directo -->
-              <ion-button
-                class="primary-btn compact-send-btn"
-                (click)="onSubmitAnswer()"
-                [disabled]="
-                  isGeneratingQuestions ||
-                  isSubmittingAnswer ||
-                  isRecordingAudio ||
-                  isTranscribingAudio ||
-                  questions.length === 0 ||
-                  (!userAnswer.trim() && !recordedAudioBlob)
-                "
-              >
-                @if (isSubmittingAnswer) {
-                  <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
-                  <span>Evaluando...</span>
-                } @else {
-                  <ion-icon slot="start" name="send-outline"></ion-icon>
-                  <span>Enviar</span>
-                }
-              </ion-button>
+          <div class="footer-submit-bar">
+            <div class="answered-counter">
+              <span>
+                Respuestas listas:
+                <strong>{{ answeredBlocksCount }} de {{ totalBlocksCount }}</strong>
+              </span>
             </div>
 
-            @if (isRecordingAudio) {
-              <div class="compact-status-line recording-text">
-                <span class="pulse-dot"></span>
-                <span>Grabando tu respuesta en inglés... Toca "Detener" al finalizar.</span>
-              </div>
-            }
-
-            @if (isProcessingAudio || isTranscribingAudio || isSubmittingAnswer) {
-              <div class="compact-status-line processing-text">
-                <ion-spinner name="crescent"></ion-spinner>
-                <span>
-                  {{
-                    isSubmittingAnswer
-                      ? 'El profesor IA está evaluando tu respuesta...'
-                      : 'Procesando tu audio (grabación bloqueada)...'
-                  }}
-                </span>
-              </div>
-            }
-
-            <!-- Mini reproductor cuando el audio está grabado -->
-            @if (recordedAudioUrl && !isRecordingAudio) {
-              <div class="compact-audio-player-row">
-                <audio [src]="recordedAudioUrl" controls class="compact-native-audio"></audio>
-                <ion-button
-                  fill="outline"
-                  size="small"
-                  color="danger"
-                  (click)="clearAudioRecording()"
-                  [disabled]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
-                >
-                  <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-                </ion-button>
-              </div>
-            }
-
-            <!-- Campo de texto desplegable opcional en vista compacta -->
-            @if (showCompactTextInput || userAnswer.trim()) {
-              <div class="compact-textarea-wrap">
-                <ion-textarea
-                  class="compact-textarea"
-                  placeholder="Escribe aquí tu respuesta en inglés..."
-                  [rows]="2"
-                  [autoGrow]="true"
-                  [ngModel]="userAnswer"
-                  (ngModelChange)="onAnswerChange($event)"
-                  [disabled]="isGeneratingQuestions || isSubmittingAnswer || isRecordingAudio"
-                ></ion-textarea>
-              </div>
-            }
-
-            @if (voiceError || answerError) {
-              <div class="alert-banner alert-error compact-alert" role="alert">
-                <ion-icon name="alert-circle-outline"></ion-icon>
-                <span>{{ voiceError || answerError }}</span>
-              </div>
-            }
+            <ion-button
+              class="primary-btn send-all-btn"
+              (click)="onSubmitAnswer()"
+              [disabled]="
+                isGeneratingQuestions ||
+                isSubmittingAnswer ||
+                isRecordingAudio ||
+                isProcessingAudio ||
+                questions.length === 0 ||
+                !hasAnyAnswer
+              "
+            >
+              @if (isSubmittingAnswer) {
+                <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
+                <span>Evaluando todo...</span>
+              } @else {
+                <ion-icon slot="start" name="send-outline"></ion-icon>
+                <span>Enviar todo junto</span>
+              }
+            </ion-button>
           </div>
         </div>
       </div>
@@ -507,360 +611,6 @@
           </div>
         </div>
       }
-    } @else {
-      <!-- ========================================================================= -->
-      <!-- VISTA CLÁSICA ORIGINAL (Con las 3 palabras de vocabulario agregadas)      -->
-      <!-- ========================================================================= -->
-      <ion-card class="surface-card photo-card">
-        <ion-card-header class="card-header-flex">
-          <div>
-            <ion-card-subtitle>Situación cotidiana con personas</ion-card-subtitle>
-            <ion-card-title>Fotografía para describir</ion-card-title>
-          </div>
-          <ion-badge class="pastel-badge">
-            <ion-icon name="people-outline"></ion-icon>
-            <span>Escena con personas</span>
-          </ion-badge>
-        </ion-card-header>
-
-        <ion-card-content>
-          <div class="photo-frame">
-            @if (isLoadingImage) {
-              <div class="photo-loading-overlay">
-                <ion-spinner name="crescent"></ion-spinner>
-                <span>Descargando fotografía...</span>
-              </div>
-            }
-
-            @if (hasImageError) {
-              <div class="photo-error-state">
-                <ion-icon name="image-outline" class="error-photo-icon"></ion-icon>
-                <p>No se pudo cargar la fotografía de práctica.</p>
-                <ion-button
-                  size="small"
-                  class="primary-btn"
-                  (click)="onRequestNewPractice()"
-                  [disabled]="isGeneratingQuestions || isSubmittingAnswer"
-                >
-                  <ion-icon slot="start" name="refresh-outline"></ion-icon>
-                  Obtener otra fotografía
-                </ion-button>
-              </div>
-            } @else if (displayImageUrl) {
-              <ion-img
-                class="practice-image"
-                [src]="displayImageUrl"
-                alt="Fotografía de situación con personas para practicar examen oral en inglés"
-                (ionImgWillLoad)="onImageWillLoad()"
-                (ionImgDidLoad)="onImageDidLoad()"
-                (ionError)="onImageError()"
-              ></ion-img>
-            }
-          </div>
-
-          <!-- Bloque de 3 palabras de vocabulario también disponible en la Vista Clásica (oculto por defecto con botón de ojo) -->
-          @if (vocabulary.length > 0) {
-            <div class="classic-vocab-section">
-              <div class="vocab-header-row">
-                <div class="vocab-header">
-                  <ion-icon name="bulb-outline"></ion-icon>
-                  <span>3 Palabras de vocabulario para enriquecer tu descripción</span>
-                </div>
-
-                <button
-                  type="button"
-                  class="vocab-eye-btn"
-                  (click)="toggleVocabVisibility()"
-                  [attr.aria-label]="isVocabVisible ? 'Ocultar palabras' : 'Mostrar palabras'"
-                >
-                  <ion-icon [name]="isVocabVisible ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-                  <span>{{ isVocabVisible ? 'Ocultar palabras' : 'Ver 3 palabras' }}</span>
-                </button>
-              </div>
-
-              @if (isVocabVisible) {
-                <div class="classic-vocab-grid">
-                  @for (item of vocabulary; track $index) {
-                    <button
-                      type="button"
-                      class="vocab-chip-btn"
-                      [class.active]="selectedVocabIndex === $index"
-                      (click)="selectVocab($index)"
-                    >
-                      <span class="vocab-word">{{ $index + 1 }}. {{ item.word }}</span>
-                      <span class="vocab-meaning">{{ item.meaning }}</span>
-                    </button>
-                  }
-                </div>
-                @if (vocabulary[selectedVocabIndex]) {
-                  <div class="vocab-example-banner">
-                    <strong>Ejemplo:</strong>
-                    <span>"{{ vocabulary[selectedVocabIndex].example }}"</span>
-                  </div>
-                }
-              }
-            </div>
-          }
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Tarjeta estilo Examen Oral: TALK ABOUT THE PICTURE -->
-      <ion-card class="surface-card questions-card">
-        <ion-card-header class="card-header-flex">
-          <div>
-            <ion-card-subtitle>TALK ABOUT THE PICTURE</ion-card-subtitle>
-            <ion-card-title>
-              Describe the picture. These questions can be used as a guide:
-            </ion-card-title>
-          </div>
-          <ion-badge class="pastel-badge">5 Guide Questions</ion-badge>
-        </ion-card-header>
-
-        <ion-card-content>
-          @if (isGeneratingQuestions) {
-            <div class="skeleton-questions" aria-busy="true">
-              <p class="generating-caption">
-                <ion-spinner name="dots"></ion-spinner>
-                Generando 5 preguntas y 3 palabras de vocabulario...
-              </p>
-              <ion-list lines="none" class="questions-list">
-                @for (item of skeletonItems; track item) {
-                  <ion-item class="question-item skeleton-item">
-                    <div class="question-number">{{ item }}</div>
-                    <ion-label>
-                      <ion-skeleton-text
-                        [animated]="true"
-                        style="width: 88%; height: 16px; border-radius: 6px"
-                      ></ion-skeleton-text>
-                    </ion-label>
-                  </ion-item>
-                }
-              </ion-list>
-            </div>
-          } @else if (questionsError) {
-            <div class="alert-banner alert-error" role="alert">
-              <ion-icon name="alert-circle-outline"></ion-icon>
-              <span>{{ questionsError }}</span>
-            </div>
-            <div class="retry-row">
-              <ion-button size="small" class="primary-btn" (click)="retryGenerateQuestions()">
-                <ion-icon slot="start" name="refresh-outline"></ion-icon>
-                Reintentar preguntas
-              </ion-button>
-            </div>
-          } @else {
-            <ion-list lines="none" class="questions-list">
-              @for (question of questions; track $index) {
-                <ion-item class="question-item">
-                  <div class="question-number" slot="start">{{ $index + 1 }}</div>
-                  <ion-label class="ion-text-wrap question-text">
-                    {{ question }}
-                  </ion-label>
-                </ion-item>
-              }
-            </ion-list>
-          }
-
-          <!-- Las 4 Preguntas Personales en Audio también en Vista Clásica -->
-          @if (personalQuestions.length > 0) {
-            <div class="personal-questions-box classic-personal-box">
-              <div class="compact-questions-header">
-                <span class="exam-card-heading">2. PERSONAL QUESTIONS (AUDIO)</span>
-                <span class="exam-card-count personal-badge">4 Oral Questions</span>
-              </div>
-
-              <p class="personal-helper-note">
-                Escucha cada pregunta personal con <strong>🔊 Escuchar</strong> y si no la sacas de
-                oído pulsa <strong>👁️ Texto</strong> para verla escrita:
-              </p>
-
-              <div class="personal-questions-list">
-                @for (pQuestion of personalQuestions; track $index) {
-                  <div class="personal-q-item" [class.speaking-now]="speakingPersonalIndex === $index">
-                    <div class="personal-q-controls">
-                      <span class="q-badge personal-q-num">{{ $index + 1 }}</span>
-
-                      <button
-                        type="button"
-                        class="play-question-btn"
-                        [class.active]="speakingPersonalIndex === $index"
-                        (click)="speakPersonalQuestion($index, false)"
-                      >
-                        <ion-icon name="volume-high-outline"></ion-icon>
-                        <span>{{ speakingPersonalIndex === $index ? 'Sonando...' : 'Escuchar pregunta' }}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        class="slow-question-btn"
-                        (click)="speakPersonalQuestion($index, true)"
-                      >
-                        🐢 Lento
-                      </button>
-
-                      <button
-                        type="button"
-                        class="reveal-question-btn"
-                        [class.revealed]="revealedPersonalMap[$index]"
-                        (click)="togglePersonalQuestionTranscript($index)"
-                      >
-                        <ion-icon [name]="revealedPersonalMap[$index] ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-                        <span>{{ revealedPersonalMap[$index] ? 'Ocultar texto' : 'Ver texto' }}</span>
-                      </button>
-                    </div>
-
-                    @if (revealedPersonalMap[$index]) {
-                      <div class="personal-q-transcript">
-                        {{ pQuestion }}
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Respuesta del estudiante en Vista Clásica -->
-      <ion-card class="surface-card answer-card">
-        <ion-card-header class="card-header-flex">
-          <div>
-            <ion-card-subtitle>Respuesta oral o escrita</ion-card-subtitle>
-            <ion-card-title>Your answer</ion-card-title>
-          </div>
-        </ion-card-header>
-
-        <ion-card-content>
-          <p class="answer-helper">
-            Puedes <strong>grabar tu voz en inglés y pulsar directamente "Enviar respuesta"</strong>,
-            o bien <strong>escribir tu respuesta</strong> abajo.
-          </p>
-
-          <div
-            class="voice-recorder-box"
-            [class.recording-active]="isRecordingAudio"
-            [class.transcribing-active]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
-          >
-            <div class="voice-controls-row">
-              <ion-button
-                [class]="isRecordingAudio ? 'stop-voice-btn' : 'record-voice-btn'"
-                (click)="toggleVoiceRecording()"
-                [disabled]="
-                  isGeneratingQuestions ||
-                  isProcessingAudio ||
-                  isTranscribingAudio ||
-                  isSubmittingAnswer ||
-                  recordedAudioBlob !== null ||
-                  questions.length === 0
-                "
-              >
-                @if (isRecordingAudio) {
-                  <ion-icon slot="start" name="stop-circle-outline"></ion-icon>
-                  <span>Detener grabación ({{ formattedRecordingTime }})</span>
-                } @else if (isProcessingAudio || isTranscribingAudio || isSubmittingAnswer) {
-                  <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
-                  <span>Procesando audio...</span>
-                } @else if (recordedAudioBlob) {
-                  <ion-icon slot="start" name="mic-outline"></ion-icon>
-                  <span>Audio listo para enviar</span>
-                } @else {
-                  <ion-icon slot="start" name="mic-outline"></ion-icon>
-                  <span>Responder hablando (Grabar voz)</span>
-                }
-              </ion-button>
-            </div>
-
-            @if (recordedAudioUrl && !isRecordingAudio) {
-              <div class="audio-ready-banner">
-                <span>
-                  ✅ <strong>Audio grabado listo:</strong> pulsa directamente
-                  <strong>Enviar respuesta</strong> abajo, o bórralo si quieres grabar de nuevo.
-                </span>
-              </div>
-
-              <div class="audio-playback-row">
-                <ion-icon name="volume-high-outline" class="audio-icon"></ion-icon>
-                <audio [src]="recordedAudioUrl" controls class="native-audio"></audio>
-                <ion-button
-                  fill="outline"
-                  size="small"
-                  class="secondary-btn"
-                  (click)="onTranscribeSavedAudio()"
-                  [disabled]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
-                >
-                  <span>Pasar a texto</span>
-                </ion-button>
-                <ion-button
-                  fill="outline"
-                  size="small"
-                  color="danger"
-                  (click)="clearAudioRecording()"
-                  [disabled]="isProcessingAudio || isTranscribingAudio || isSubmittingAnswer"
-                >
-                  <ion-icon slot="start" name="trash-outline"></ion-icon>
-                  <span>Borrar para regrabar</span>
-                </ion-button>
-              </div>
-            }
-
-            @if (voiceError) {
-              <div class="alert-banner alert-error" role="alert">
-                <ion-icon name="alert-circle-outline"></ion-icon>
-                <span>{{ voiceError }}</span>
-              </div>
-            }
-          </div>
-
-          <div class="textarea-container">
-            <ion-textarea
-              class="answer-textarea"
-              aria-label="Your answer in English"
-              placeholder="Opcional si ya grabaste un audio: también puedes escribir tu respuesta en inglés aquí..."
-              [rows]="5"
-              [autoGrow]="true"
-              [ngModel]="userAnswer"
-              (ngModelChange)="onAnswerChange($event)"
-              [disabled]="
-                isGeneratingQuestions ||
-                isSubmittingAnswer ||
-                isRecordingAudio ||
-                isTranscribingAudio
-              "
-            ></ion-textarea>
-          </div>
-
-          @if (answerError) {
-            <div class="alert-banner alert-error" role="alert">
-              <ion-icon name="alert-circle-outline"></ion-icon>
-              <span>{{ answerError }}</span>
-            </div>
-          }
-
-          <div class="submit-row">
-            <ion-button
-              class="primary-btn submit-btn"
-              (click)="onSubmitAnswer()"
-              [disabled]="
-                isGeneratingQuestions ||
-                isSubmittingAnswer ||
-                isRecordingAudio ||
-                isTranscribingAudio ||
-                questions.length === 0 ||
-                (!userAnswer.trim() && !recordedAudioBlob)
-              "
-            >
-              @if (isSubmittingAnswer) {
-                <ion-spinner name="crescent" class="btn-spinner"></ion-spinner>
-                <span>Evaluando respuesta...</span>
-              } @else {
-                <ion-icon slot="start" name="send-outline"></ion-icon>
-                <span>Enviar respuesta</span>
-              }
-            </ion-button>
-          </div>
-        </ion-card-content>
-      </ion-card>
     }
   </div>
 </ion-content>

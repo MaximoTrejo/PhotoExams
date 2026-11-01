@@ -16,14 +16,10 @@ import {
   IonCardSubtitle,
   IonCardContent,
   IonImg,
-  IonList,
-  IonItem,
-  IonLabel,
   IonTextarea,
   IonSkeletonText,
   IonSpinner,
   IonIcon,
-  IonBadge,
   ViewWillEnter,
   ViewWillLeave,
 } from '@ionic/angular/standalone';
@@ -34,26 +30,28 @@ import {
   refreshOutline,
   sendOutline,
   alertCircleOutline,
-  helpCircleOutline,
   createOutline,
   imageOutline,
-  arrowForwardOutline,
-  sparklesOutline,
   micOutline,
   stopCircleOutline,
   volumeHighOutline,
   trashOutline,
-  peopleOutline,
   expandOutline,
   closeOutline,
-  gridOutline,
-  listOutline,
   bulbOutline,
   eyeOutline,
   eyeOffOutline,
+  checkmarkCircleOutline,
 } from 'ionicons/icons';
 import { VocabularyItem } from '../../models/photo-exam.models';
 import { PhotoExamService } from '../../services/photo-exam.service';
+
+export interface ItemAnswerState {
+  audioBlob: Blob | null;
+  audioUrl: string | null;
+  text: string;
+  showTextInput: boolean;
+}
 
 @Component({
   selector: 'app-practice',
@@ -76,14 +74,10 @@ import { PhotoExamService } from '../../services/photo-exam.service';
     IonCardSubtitle,
     IonCardContent,
     IonImg,
-    IonList,
-    IonItem,
-    IonLabel,
     IonTextarea,
     IonSkeletonText,
     IonSpinner,
     IonIcon,
-    IonBadge,
   ],
 })
 export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillLeave {
@@ -103,18 +97,13 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   public personalQuestions: string[] = [];
   public revealedPersonalMap: Record<number, boolean> = {};
   public speakingPersonalIndex: number | null = null;
+
   public vocabulary: VocabularyItem[] = [];
   public selectedVocabIndex = 0;
-  // Por defecto las 3 palabras de vocabulario aparecen ocultas hasta tocar el botón de ojo
+  // Por defecto las 3 palabras aparecen ocultas hasta tocar el botón de ojo
   public isVocabVisible = false;
-  public userAnswer = '';
 
-  // Modo de visualización: 'compact' (sin scroll + modo tarjeta al girar el celular) o 'classic' (vista original grande)
-  public viewMode: 'compact' | 'classic' = 'compact';
-  // Filtro rápido en la tarjeta para ver las 5 de la foto, las 4 personales en audio, o ambas juntas
-  public examSectionTab: 'both' | 'picture' | 'personal' = 'both';
   public isPhotoExpanded = false;
-  public showCompactTextInput = false;
 
   public isCheckingSyllabus = false;
   public isLoadingImage = false;
@@ -122,13 +111,15 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   public isGeneratingQuestions = false;
   public isSubmittingAnswer = false;
 
-  // Estados de grabación de respuesta oral (micrófono en móvil y escritorio)
+  // Respuestas individuales por bloque: 'picture' y 'personal-0'..'personal-3'
+  public itemAnswers: Record<string, ItemAnswerState> = {};
+  public activeRecordingKey: string | null = null;
+  public processingAudioKey: string | null = null;
+
+  // Estados de grabación de respuesta oral
   public isRecordingAudio = false;
   public isProcessingAudio = false;
-  public isTranscribingAudio = false;
   public recordingSeconds = 0;
-  public recordedAudioBlob: Blob | null = null;
-  public recordedAudioUrl: string | null = null;
   public voiceError: string | null = null;
 
   private mediaRecorder: MediaRecorder | null = null;
@@ -149,25 +140,150 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       refreshOutline,
       sendOutline,
       alertCircleOutline,
-      helpCircleOutline,
       createOutline,
       imageOutline,
-      arrowForwardOutline,
-      sparklesOutline,
       micOutline,
       stopCircleOutline,
       volumeHighOutline,
       trashOutline,
-      peopleOutline,
       expandOutline,
       closeOutline,
-      gridOutline,
-      listOutline,
       bulbOutline,
       eyeOutline,
       eyeOffOutline,
+      checkmarkCircleOutline,
     });
+    this.resetAllItemAnswers();
   }
+
+  public ngOnInit(): void {
+    void this.initializePracticeScreen(false);
+  }
+
+  public ionViewWillEnter(): void {
+    void this.initializePracticeScreen(false);
+  }
+
+  public ionViewWillLeave(): void {
+    this.stopSpeakingQuestion();
+    this.cleanupMicrophoneResources();
+  }
+
+  public ngOnDestroy(): void {
+    this.stopSpeakingQuestion();
+    this.cleanupMicrophoneResources();
+    this.revokeAllAudioUrls();
+  }
+
+  // ============================================================================
+  // GESTIÓN DE ESTADO POR BLOQUE ('picture' y 'personal-0'..'personal-3')
+  // ============================================================================
+
+  public getPersonalKey(index: number): string {
+    return `personal-${index}`;
+  }
+
+  public getItemState(key: string): ItemAnswerState {
+    if (!this.itemAnswers[key]) {
+      this.itemAnswers[key] = {
+        audioBlob: null,
+        audioUrl: null,
+        text: '',
+        showTextInput: false,
+      };
+    }
+    return this.itemAnswers[key];
+  }
+
+  public isItemAnswered(key: string): boolean {
+    const state = this.itemAnswers[key];
+    if (!state) {
+      return false;
+    }
+    return (
+      (state.audioBlob !== null && state.audioBlob.size > 0) ||
+      state.text.trim().length > 0
+    );
+  }
+
+  public get hasAnyAnswer(): boolean {
+    return Object.keys(this.itemAnswers).some((key) => this.isItemAnswered(key));
+  }
+
+  public get answeredBlocksCount(): number {
+    let count = 0;
+    if (this.isItemAnswered('picture')) {
+      count += 1;
+    }
+    for (let i = 0; i < this.personalQuestions.length; i++) {
+      if (this.isItemAnswered(this.getPersonalKey(i))) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  public get totalBlocksCount(): number {
+    return 1 + (this.personalQuestions.length || 4);
+  }
+
+  public toggleItemTextInput(key: string): void {
+    const state = this.getItemState(key);
+    state.showTextInput = !state.showTextInput;
+  }
+
+  public onItemTextChange(key: string, value: string): void {
+    const state = this.getItemState(key);
+    state.text = value;
+    if (this.answerError && value.trim().length > 0) {
+      this.answerError = null;
+    }
+  }
+
+  public clearItemAudio(key: string): void {
+    const state = this.itemAnswers[key];
+    if (!state) {
+      return;
+    }
+    if (state.audioUrl) {
+      URL.revokeObjectURL(state.audioUrl);
+      state.audioUrl = null;
+    }
+    state.audioBlob = null;
+  }
+
+  private resetAllItemAnswers(): void {
+    this.revokeAllAudioUrls();
+    this.itemAnswers = {
+      picture: {
+        audioBlob: null,
+        audioUrl: null,
+        text: '',
+        showTextInput: false,
+      },
+    };
+    for (let i = 0; i < 4; i++) {
+      this.itemAnswers[this.getPersonalKey(i)] = {
+        audioBlob: null,
+        audioUrl: null,
+        text: '',
+        showTextInput: false,
+      };
+    }
+  }
+
+  private revokeAllAudioUrls(): void {
+    for (const key of Object.keys(this.itemAnswers)) {
+      const url = this.itemAnswers[key]?.audioUrl;
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    }
+  }
+
+  // ============================================================================
+  // CONTROLES DE VOCABULARIO, FOTO Y AUDIO DE PREGUNTAS PERSONALES
+  // ============================================================================
 
   public selectVocab(index: number): void {
     this.selectedVocabIndex = index;
@@ -177,8 +293,8 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.isVocabVisible = !this.isVocabVisible;
   }
 
-  public setExamSectionTab(tab: 'both' | 'picture' | 'personal'): void {
-    this.examSectionTab = tab;
+  public togglePhotoExpanded(): void {
+    this.isPhotoExpanded = !this.isPhotoExpanded;
   }
 
   public togglePersonalQuestionTranscript(index: number): void {
@@ -234,45 +350,10 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.speakingPersonalIndex = null;
   }
 
-  public setViewMode(mode: 'compact' | 'classic'): void {
-    this.viewMode = mode;
-  }
+  // ============================================================================
+  // CARGA DE SESIÓN Y GENERACIÓN DE TARJETA DE EXAMEN
+  // ============================================================================
 
-  public togglePhotoExpanded(): void {
-    this.isPhotoExpanded = !this.isPhotoExpanded;
-  }
-
-  public toggleCompactTextInput(): void {
-    this.showCompactTextInput = !this.showCompactTextInput;
-  }
-
-  public ngOnInit(): void {
-    void this.initializePracticeScreen(false);
-  }
-
-  public ionViewWillEnter(): void {
-    void this.initializePracticeScreen(false);
-  }
-
-  public ionViewWillLeave(): void {
-    this.stopSpeakingQuestion();
-    this.cleanupMicrophoneResources();
-  }
-
-  public ngOnDestroy(): void {
-    this.stopSpeakingQuestion();
-    this.cleanupMicrophoneResources();
-    if (this.recordedAudioUrl) {
-      URL.revokeObjectURL(this.recordedAudioUrl);
-    }
-  }
-
-  /**
-   * 6.2. Al cargar la pantalla:
-   * 1. Recupera el resumen del estudiante desde Supabase.
-   * 2. Comprueba que exista un resumen guardado.
-   * 3. Si ya hay una práctica en curso con ese resumen, la restaura; si no, inicia una nueva.
-   */
   public async initializePracticeScreen(forceNewPractice: boolean): Promise<void> {
     if (this.isCheckingSyllabus || this.isGeneratingQuestions || this.isSubmittingAnswer) {
       return;
@@ -313,7 +394,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         this.revealedPersonalMap = {};
         this.vocabulary = existingSession.vocabulary ? [...existingSession.vocabulary] : [];
         this.selectedVocabIndex = 0;
-        this.userAnswer = existingSession.userAnswer;
         this.isLoadingImage = false;
         this.hasImageError = false;
         return;
@@ -330,27 +410,28 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     }
   }
 
-  /**
-   * Solicita confirmación si el estudiante ya escribió o grabó parte de su respuesta
-   * antes de generar otra fotografía y comenzar una nueva práctica.
-   */
   public async onRequestNewPractice(): Promise<void> {
-    if (this.isGeneratingQuestions || this.isSubmittingAnswer || this.isRecordingAudio) {
+    if (
+      this.isGeneratingQuestions ||
+      this.isSubmittingAnswer ||
+      this.isRecordingAudio ||
+      this.isProcessingAudio
+    ) {
       return;
     }
 
-    if (this.userAnswer.trim().length > 0 || this.recordedAudioBlob !== null) {
+    if (this.hasAnyAnswer) {
       const alert = await this.alertController.create({
-        header: '¿Comenzar nueva práctica?',
+        header: '¿Generar nueva Card de examen?',
         message:
-          'Tienes una respuesta en curso. Si generas otra fotografía ahora, se reemplazará la respuesta actual.',
+          'Ya tienes respuestas grabadas o escritas en esta tarjeta. Si generas otra ahora, se reiniciarán las respuestas actuales.',
         buttons: [
           {
             text: 'Cancelar',
             role: 'cancel',
           },
           {
-            text: 'Nueva práctica',
+            text: 'Nueva Card',
             role: 'confirm',
             handler: () => {
               void this.startNewPracticeSession();
@@ -365,9 +446,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     await this.startNewPracticeSession();
   }
 
-  /**
-   * Carga una nueva imagen de personas en situaciones cotidianas y genera las 5 preguntas con Gemini.
-   */
   public async startNewPracticeSession(): Promise<void> {
     if (!this.hasSavedSyllabus || !this.syllabusContent) {
       return;
@@ -375,7 +453,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
     this.stopSpeakingQuestion();
     this.cleanupMicrophoneResources();
-    this.clearAudioRecording();
+    this.resetAllItemAnswers();
     this.questionsError = null;
     this.answerError = null;
     this.voiceError = null;
@@ -388,7 +466,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.vocabulary = [];
     this.selectedVocabIndex = 0;
     this.isVocabVisible = false;
-    this.userAnswer = '';
 
     const randomSituationUrl = this.photoExamService.generateRandomImageUrl();
     this.imageUrl = randomSituationUrl;
@@ -397,9 +474,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.imageMimeType = undefined;
 
     try {
-      // No esperamos a descargar y convertir la foto en el celular antes de pedir las preguntas:
-      // el navegador muestra la foto en paralelo mientras el servidor de Supabase descarga
-      // una versión liviana (25 KB) a velocidad de datacenter y genera las 5 preguntas + 4 personales + 3 palabras.
       const generated = await this.photoExamService.generateQuestions(
         this.syllabusContent,
         this.displayImageUrl
@@ -410,6 +484,10 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       this.revealedPersonalMap = {};
       this.vocabulary = generated.vocabulary;
       this.selectedVocabIndex = 0;
+
+      for (let i = 0; i < this.personalQuestions.length; i++) {
+        this.getItemState(this.getPersonalKey(i));
+      }
 
       this.photoExamService.setActiveSession({
         sessionKey: `practice-${Date.now()}`,
@@ -434,9 +512,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     }
   }
 
-  /**
-   * Reintenta únicamente la generación de preguntas conservando la imagen actual.
-   */
   public async retryGenerateQuestions(): Promise<void> {
     if (this.isGeneratingQuestions || !this.displayImageUrl || !this.syllabusContent) {
       return;
@@ -458,6 +533,10 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       this.vocabulary = generated.vocabulary;
       this.selectedVocabIndex = 0;
 
+      for (let i = 0; i < this.personalQuestions.length; i++) {
+        this.getItemState(this.getPersonalKey(i));
+      }
+
       this.photoExamService.setActiveSession({
         sessionKey: `practice-${Date.now()}`,
         syllabusContent: this.syllabusContent,
@@ -468,7 +547,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         questions: this.questions,
         personalQuestions: this.personalQuestions,
         vocabulary: this.vocabulary,
-        userAnswer: this.userAnswer,
+        userAnswer: '',
         feedback: null,
         savedPracticeId: null,
         savedCreatedAt: null,
@@ -484,41 +563,43 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
   }
 
   // ============================================================================
-  // RESPUESTA ORAL POR VOZ (MICRÓFONO EN NAVEGADOR MÓVIL / VERCEL HTTPS)
+  // GRABACIÓN DE AUDIO INDIVIDUAL POR PREGUNTA / SECCIÓN
   // ============================================================================
 
-  public async toggleVoiceRecording(): Promise<void> {
-    if (this.isRecordingAudio) {
+  public async toggleItemRecording(key: string): Promise<void> {
+    if (this.isRecordingAudio && this.activeRecordingKey === key) {
       this.stopVoiceRecording();
     } else {
-      await this.startVoiceRecording();
+      await this.startVoiceRecording(key);
     }
   }
 
-  public async startVoiceRecording(): Promise<void> {
+  public async startVoiceRecording(key: string): Promise<void> {
+    const state = this.getItemState(key);
     if (
       this.isRecordingAudio ||
       this.isProcessingAudio ||
-      this.isTranscribingAudio ||
       this.isGeneratingQuestions ||
       this.isSubmittingAnswer ||
-      this.recordedAudioBlob !== null
+      state.audioBlob !== null
     ) {
       return;
     }
 
+    this.stopSpeakingQuestion();
     this.voiceError = null;
     this.answerError = null;
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       this.voiceError =
-        'Tu navegador no permite el acceso al micrófono. Asegúrate de abrir la aplicación mediante HTTPS (por ejemplo, en Vercel).';
+        'Tu navegador no permite el acceso al micrófono. Asegúrate de abrir la aplicación mediante HTTPS.';
       return;
     }
 
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.audioChunks = [];
+      this.activeRecordingKey = key;
 
       const supportedMimeType = this.getSupportedAudioMimeType();
       try {
@@ -529,7 +610,6 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
             })
           : new MediaRecorder(this.mediaStream, { audioBitsPerSecond: 32000 });
       } catch {
-        // Fallback seguro para iOS WebKit (Safari / Chrome en iPhone) sin forzar opciones
         this.mediaRecorder = new MediaRecorder(this.mediaStream);
       }
 
@@ -539,8 +619,9 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         }
       };
 
+      const targetKey = key;
       this.mediaRecorder.onstop = () => {
-        this.handleRecordingStopped();
+        this.handleRecordingStopped(targetKey);
       };
 
       this.mediaRecorder.start();
@@ -552,7 +633,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       }, 1000);
     } catch {
       this.voiceError =
-        'No se pudo acceder al micrófono. Verifica en los Ajustes de tu iPhone (Configuración -> Chrome -> Micrófono) que el permiso esté activado.';
+        'No se pudo acceder al micrófono. Verifica que el permiso del micrófono esté activado en tu navegador.';
       this.cleanupMicrophoneResources();
     }
   }
@@ -564,6 +645,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
     this.isRecordingAudio = false;
     this.isProcessingAudio = true;
+    this.processingAudioKey = this.activeRecordingKey;
 
     if (this.recordingTimerId) {
       clearInterval(this.recordingTimerId);
@@ -574,12 +656,14 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       this.mediaRecorder.stop();
     } else {
       this.isProcessingAudio = false;
+      this.processingAudioKey = null;
+      this.activeRecordingKey = null;
     }
 
     this.stopMediaTracks();
   }
 
-  private handleRecordingStopped(): void {
+  private handleRecordingStopped(key: string): void {
     try {
       if (this.audioChunks.length === 0) {
         return;
@@ -587,53 +671,21 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
       const mimeType = this.mediaRecorder?.mimeType || 'audio/mp4';
       const audioBlob = new Blob(this.audioChunks, { type: mimeType });
-      this.recordedAudioBlob = audioBlob;
+      const state = this.getItemState(key);
 
-      if (this.recordedAudioUrl) {
-        URL.revokeObjectURL(this.recordedAudioUrl);
+      if (state.audioUrl) {
+        URL.revokeObjectURL(state.audioUrl);
       }
-      this.recordedAudioUrl = URL.createObjectURL(audioBlob);
+
+      state.audioBlob = audioBlob;
+      state.audioUrl = URL.createObjectURL(audioBlob);
       this.voiceError = null;
       this.answerError = null;
     } finally {
       this.isProcessingAudio = false;
+      this.processingAudioKey = null;
+      this.activeRecordingKey = null;
     }
-  }
-
-  /**
-   * Opción secundaria por si el estudiante desea transcribir el audio grabado al cuadro
-   * de texto antes de enviar, conservando siempre el audio para reintentar si falla.
-   */
-  public async onTranscribeSavedAudio(): Promise<void> {
-    if (!this.recordedAudioBlob || this.isTranscribingAudio) {
-      return;
-    }
-
-    this.isTranscribingAudio = true;
-    this.voiceError = null;
-
-    try {
-      const transcript = await this.photoExamService.transcribeAudio(this.recordedAudioBlob);
-      const currentText = this.userAnswer.trim();
-      const updatedText = currentText ? `${currentText} ${transcript}` : transcript;
-      this.onAnswerChange(updatedText);
-    } catch (error: unknown) {
-      this.voiceError =
-        error instanceof Error
-          ? error.message
-          : 'No se pudo transcribir a texto, pero puedes pulsar directamente "Enviar respuesta" para mandar tu audio.';
-    } finally {
-      this.isTranscribingAudio = false;
-    }
-  }
-
-  public clearAudioRecording(): void {
-    if (this.recordedAudioUrl) {
-      URL.revokeObjectURL(this.recordedAudioUrl);
-      this.recordedAudioUrl = null;
-    }
-    this.recordedAudioBlob = null;
-    this.audioChunks = [];
   }
 
   public get formattedRecordingTime(): string {
@@ -678,11 +730,13 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       try {
         this.mediaRecorder.stop();
       } catch {
-        // Ignorar si ya se detuvo
+        // Ignorar si ya estaba inactivo
       }
     }
     this.isRecordingAudio = false;
     this.isProcessingAudio = false;
+    this.activeRecordingKey = null;
+    this.processingAudioKey = null;
     this.stopMediaTracks();
   }
 
@@ -701,51 +755,75 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
     this.hasImageError = true;
   }
 
-  public onAnswerChange(value: string): void {
-    this.userAnswer = value;
-    if (this.answerError && value.trim().length > 0) {
-      this.answerError = null;
-    }
-    this.photoExamService.updateActiveSession({ userAnswer: value });
-  }
+  // ============================================================================
+  // ENVÍO UNIFICADO ("ENVIAR TODO JUNTO")
+  // ============================================================================
 
-  /**
-   * 6.5. Envía la respuesta del estudiante a Gemini para su evaluación y navega a Feedback.
-   */
   public async onSubmitAnswer(): Promise<void> {
     if (
       this.isSubmittingAnswer ||
       this.isGeneratingQuestions ||
       this.isRecordingAudio ||
-      this.isTranscribingAudio ||
+      this.isProcessingAudio ||
       this.questions.length === 0
     ) {
       return;
     }
 
     this.answerError = null;
-    const trimmedAnswer = this.userAnswer.trim();
-    const hasAudio = this.recordedAudioBlob !== null && this.recordedAudioBlob.size > 0;
+    this.voiceError = null;
 
-    if (!trimmedAnswer && !hasAudio) {
+    if (!this.hasAnyAnswer) {
       this.answerError =
-        'Tu respuesta está vacía. Puedes grabar un audio con el micrófono o escribir tu respuesta en inglés antes de enviar.';
+        'Todavía no has respondido ninguna parte. Graba un audio o escribe tu respuesta en la imagen o en las preguntas personales antes de enviar todo junto.';
       return;
     }
+
+    const audioParts: Array<{ label: string; blob: Blob }> = [];
+    const writtenSections: string[] = [];
+
+    // 1) Talk about the picture
+    const pictureState = this.getItemState('picture');
+    if (pictureState.audioBlob && pictureState.audioBlob.size > 0) {
+      audioParts.push({
+        label: '1) Talk about the picture (Descripción oral de la foto)',
+        blob: pictureState.audioBlob,
+      });
+    }
+    if (pictureState.text.trim()) {
+      writtenSections.push(
+        `1) Talk about the picture (Respuesta escrita):\n${pictureState.text.trim()}`
+      );
+    }
+
+    // 2) Answer these questions (una por una)
+    for (let i = 0; i < this.personalQuestions.length; i++) {
+      const key = this.getPersonalKey(i);
+      const qState = this.getItemState(key);
+      const qText = this.personalQuestions[i];
+
+      if (qState.audioBlob && qState.audioBlob.size > 0) {
+        audioParts.push({
+          label: `2) Personal Question ${i + 1} (${qText})`,
+          blob: qState.audioBlob,
+        });
+      }
+      if (qState.text.trim()) {
+        writtenSections.push(
+          `2) Personal Question ${i + 1} (${qText}) - Respuesta escrita:\n${qState.text.trim()}`
+        );
+      }
+    }
+
+    const combinedWrittenAnswer = writtenSections.join('\n\n');
+    const combinedQuestionsForEvaluation = [
+      ...this.questions.map((q) => `[Picture Guide] ${q}`),
+      ...this.personalQuestions.map((q, idx) => `[Personal Question ${idx + 1}] ${q}`),
+    ];
 
     this.isSubmittingAnswer = true;
 
     try {
-      const combinedQuestionsForEvaluation =
-        this.examSectionTab === 'personal' && this.personalQuestions.length > 0
-          ? this.personalQuestions.map((q, i) => `Personal Question ${i + 1}: ${q}`)
-          : this.examSectionTab === 'picture'
-            ? [...this.questions]
-            : [
-                ...this.questions,
-                ...this.personalQuestions.map((q, i) => `Personal Question ${i + 1}: ${q}`),
-              ];
-
       this.photoExamService.setActiveSession({
         sessionKey:
           this.photoExamService.activeSession()?.sessionKey || `practice-${Date.now()}`,
@@ -757,7 +835,9 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         questions: [...this.questions],
         personalQuestions: [...this.personalQuestions],
         vocabulary: [...this.vocabulary],
-        userAnswer: trimmedAnswer || '[Respuesta oral en audio]',
+        userAnswer:
+          combinedWrittenAnswer ||
+          `[Respuestas orales enviadas: ${audioParts.length} audio(s)]`,
         feedback: null,
         savedPracticeId: null,
         savedCreatedAt: null,
@@ -767,19 +847,19 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
         syllabusContent: this.syllabusContent,
         imageUrl: this.displayImageUrl || this.imageUrl,
         questions: combinedQuestionsForEvaluation,
-        userAnswer: trimmedAnswer,
-        audioBlob: this.recordedAudioBlob,
+        userAnswer: combinedWrittenAnswer,
+        audioParts,
       });
 
-      const finalAnswerText =
-        feedback.transcript?.trim() ||
-        trimmedAnswer ||
-        '[Respuesta oral evaluada por audio]';
-
-      this.userAnswer = finalAnswerText;
+      const finalAnswerText = [
+        feedback.transcript?.trim() ? feedback.transcript.trim() : '',
+        combinedWrittenAnswer,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
 
       this.photoExamService.updateActiveSession({
-        userAnswer: finalAnswerText,
+        userAnswer: finalAnswerText || '[Respuesta oral evaluada por audio]',
         feedback,
       });
 
@@ -788,7 +868,7 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
       this.answerError =
         error instanceof Error
           ? error.message
-          : 'No se pudo evaluar tu respuesta en este momento. Tu audio o texto sigue guardado: pulsa "Enviar respuesta" para reintentar.';
+          : 'No se pudo evaluar tu respuesta en este momento. Tus audios y textos siguen guardados: pulsa "Enviar todo junto" para reintentar.';
     } finally {
       this.isSubmittingAnswer = false;
     }

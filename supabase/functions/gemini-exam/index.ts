@@ -48,6 +48,12 @@ interface GenerateQuestionsPayload {
   imageMimeType?: string;
 }
 
+interface AudioPartPayload {
+  label: string;
+  audioBase64: string;
+  audioMimeType?: string;
+}
+
 interface EvaluateAnswerPayload {
   action: 'evaluate-answer';
   syllabus: string;
@@ -58,6 +64,7 @@ interface EvaluateAnswerPayload {
   imageMimeType?: string;
   audioBase64?: string;
   audioMimeType?: string;
+  audioParts?: AudioPartPayload[];
 }
 
 interface TranscribeAudioPayload {
@@ -684,8 +691,18 @@ IMPORTANT RULES:
     if (body.action === 'evaluate-answer') {
       const questions = Array.isArray(body.questions) ? body.questions : [];
       const userAnswer = (body.userAnswer || '').trim();
-      const cleanAudioBase64 = stripDataUrlPrefix(body.audioBase64);
-      const hasAudio = cleanAudioBase64.length > 0;
+      const cleanSingleAudio = stripDataUrlPrefix(body.audioBase64);
+      const validAudioParts = Array.isArray(body.audioParts)
+        ? body.audioParts
+            .map((ap) => ({
+              label: String(ap.label || 'Respuesta en audio').trim(),
+              data: stripDataUrlPrefix(ap.audioBase64),
+              mimeType: (ap.audioMimeType || 'audio/mp4').split(';')[0].trim() || 'audio/mp4',
+            }))
+            .filter((ap) => ap.data.length > 0)
+        : [];
+
+      const hasAudio = cleanSingleAudio.length > 0 || validAudioParts.length > 0;
 
       if (!userAnswer && !hasAudio) {
         return new Response(
@@ -699,8 +716,8 @@ IMPORTANT RULES:
 
       const answerContextText = hasAudio
         ? userAnswer
-          ? `${userAnswer}\n(Además, el estudiante adjuntó su respuesta oral en el archivo de audio incluido en esta solicitud. Escucha el audio, transcríbelo fielmente en la propiedad "transcript" y evalúa tanto lo hablado como lo escrito).`
-          : `(El estudiante respondió de forma oral mediante el archivo de audio adjunto en esta solicitud. Primero transcribe exactamente lo que dijo en inglés dentro de la propiedad "transcript" sin autocorregir su gramática, y luego evalúa su respuesta oral siguiendo todas las instrucciones).`
+          ? `${userAnswer}\n(Además, el estudiante adjuntó grabaciones de voz para las preguntas. Escucha cada audio adjunto, transcríbelos fielmente en la propiedad "transcript" indicando a qué parte corresponden y evalúa tanto lo hablado como lo escrito).`
+          : `(El estudiante respondió de forma oral mediante los archivos de audio adjuntos en esta solicitud. Primero transcribe exactamente lo que dijo en inglés dentro de la propiedad "transcript" sin autocorregir su gramática, y luego evalúa todas sus respuestas siguiendo las instrucciones).`
         : userAnswer;
 
       const prompt = buildEvaluationPrompt(
@@ -720,12 +737,22 @@ IMPORTANT RULES:
         });
       }
 
-      if (hasAudio) {
+      if (validAudioParts.length > 0) {
+        for (const ap of validAudioParts) {
+          parts.push({ text: `Audio grabado por el estudiante para [${ap.label}]:` });
+          parts.push({
+            inlineData: {
+              mimeType: ap.mimeType,
+              data: ap.data,
+            },
+          });
+        }
+      } else if (cleanSingleAudio.length > 0) {
         const rawAudioMime = (body.audioMimeType || 'audio/mp4').split(';')[0].trim();
         parts.push({
           inlineData: {
             mimeType: rawAudioMime || 'audio/mp4',
-            data: cleanAudioBase64,
+            data: cleanSingleAudio,
           },
         });
       }
