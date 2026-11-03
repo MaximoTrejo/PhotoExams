@@ -170,40 +170,52 @@ async function resolveImageInlineData(
  * C) 3 palabras de vocabulario ("vocabulary") útiles para la escena.
  */
 function buildQuestionsPrompt(syllabus: string, imageContext: string): string {
-  return `Actúa como un examinador de inglés en un examen oral ("TALK ABOUT THE PICTURE" + "PERSONAL QUESTIONS").
-Observa detenidamente la fotografía adjunta (quiénes aparecen, si es un hombre, una mujer, una pareja o un grupo, dónde están, cómo se sienten, qué acaba de pasar o qué están haciendo).
+  return `Actúa como un examinador de inglés en un examen oral ("1) Talk about the picture" + "2) Answer these questions").
+Observa la fotografía adjunta únicamente para identificar:
+- Si aparece un hombre solo ("he" / "the man"), una mujer sola ("she" / "the woman"), una pareja ("he/she" + "his wife" / "her husband") o un grupo de personas ("they").
 
 Tu objetivo es devolver en un único JSON:
-A) "questions": Exactamente 5 preguntas sobre la fotografía seleccionadas y adaptadas a partir del BANCO DE PREGUNTAS DE LA IMAGEN.
-B) "personalQuestions": Exactamente 4 preguntas personales dirigidas al estudiante ("you"), combinando algunas del BANCO DE PREGUNTAS PERSONALES REALES y generando variantes nuevas del mismo nivel basadas en los temas de su resumen para que no sean siempre las mismas.
-C) "vocabulary": Exactamente 3 palabras o expresiones cortas de vocabulario visibles o útiles para describir esta foto.
+A) "questions": Exactamente 5 preguntas GENERALES sobre la fotografía tomadas del BANCO OFICIAL DE PREGUNTAS DE LA IMAGEN.
+B) "personalQuestions": Exactamente 4 preguntas personales dirigidas al estudiante ("you"), priorizando las del BANCO DE PREGUNTAS PERSONALES REALES y combinando con alguna variante del mismo estilo según los temas del resumen.
+C) "vocabulary": Exactamente 3 palabras o expresiones cortas de vocabulario útiles para describir esta foto.
 
-**A. BANCO DE PREGUNTAS DE LA IMAGEN (adapta he/she/they o the man/the woman/his wife/her friend según lo que realmente se ve en la foto):**
+**REGLA ESTRICTA PARA "questions" (1. Talk about the picture):**
+- Las preguntas deben ser CORTAS y GENERALES exactamente como en las tarjetas impresas del examen.
+- SOLO adapta el pronombre o sujeto según quién aparezca en la foto ("he", "she", "they", "the man", "the woman", "his wife", "her husband", "his/her friend").
+- PROHIBIDO agregar objetos específicos de la foto o situaciones inventadas dentro de la pregunta.
+  - INCORRECTO: "What are they doing with the laptop?" -> CORRECTO: "What are they doing?"
+  - INCORRECTO: "What advice would you give them if they have to finish a project today?" -> CORRECTO: "What advice would you give them?"
+  - INCORRECTO: "What will happen if they don't stop laughing?" -> CORRECTO: "What will happen next?" o "What will happen later?"
+
+**A. BANCO OFICIAL DE PREGUNTAS GENERALES DE LA IMAGEN (usa estas plantillas exactas adaptando solo he/she/they/the man/the woman):**
 - "Who is she? Where is she?" / "Who is he? Where is he?" / "Who are they? Where are they?"
-- "What does he/she look like?" / "Describe the person in the picture." / "Describe the people in the picture."
-- "How is she feeling?" / "How is the man feeling?" / "How are they feeling?"
-- "What are they doing?" / "What is he/she doing?"
-- "What has happened?" / "What has happened to her/him?"
-- "How long has he/she been there?" / "How long have they been there?"
-- "How was his/her life different in the past?"
-- "What did he/she use to do when he/she was younger?"
-- "What advice would you give him/her/them?"
-- "What is he/she going to do after this?" / "What is his wife / her husband / the other person going to do?"
-- "What are his/her/their plans for the weekend?"
+- "How is the man feeling? What has happened?" / "How is she feeling? What has happened to her?" / "How are they feeling?"
+- "What are they doing?" / "What is he doing?" / "What is she doing?"
+- "How long has he been there?" / "How long has she been there?" / "How long have they been there?"
+- "What does he look like?" / "What does she look like?" / "Describe the person in the picture."
+- "How was his life different in the past?" / "How was her life different in the past?"
+- "What did he use to do when he was younger?" / "What did she use to do when she was younger?"
+- "What are his plans for the weekend?" / "What are her plans for the weekend?" / "What are their plans for the weekend?"
+- "What is he going to do after this?" / "What is she going to do after this?" / "What are they going to do after this?"
+- "What is his wife going to do?" / "What is her husband going to do?" / "What is his/her friend going to do?"
 - "What will happen next?" / "What will happen later?"
+- "What advice would you give him?" / "What advice would you give her?" / "What advice would you give them?"
 
-**B. BANCO DE PREGUNTAS PERSONALES REALES DE EJEMPLO (elige 1 o 2 de estas y genera 2 o 3 nuevas del mismo estilo según los temas del resumen):**
-- "Do you dream regularly? Do you remember your dreams?"
-- "What will you do if someone phones you during the English class?"
-- "When was the last time you went to the doctor's? Why?"
-- "Why are you studying English?"
-- "Are you more of an optimist or a pessimist?"
-- "What rules are there at the place where you work or study?"
-- "Tell us about something you are excellent at and something you are terrible at doing."
-- "Tell us two tips for someone who is starting a new job next Monday."
-- "What kind of people do you get on with? Why?"
-- "Have you ever had the same dream more than once? Describe it."
-- "Are you studying anything at the moment? How long have you studied that? When did you start?"
+**B. BANCO DE PREGUNTAS PERSONALES REALES DE EXAMEN (incluye 2 o 3 de esta lista, especialmente las primeras 6, y 1 o 2 generadas del mismo estilo según el resumen):**
+1. "Have you ever had the same dream more than once? Describe it."
+2. "What kind of people do you get on with? Why?"
+3. "Are you studying anything at the moment? How long have you studied that? When did you start?"
+4. "Tell us about your past habits."
+5. "What should you do when you have a headache, a stomachache or a cough?"
+6. "How long have you studied English? Where did you start studying?"
+7. "Do you dream regularly? Do you remember your dreams?"
+8. "What will you do if someone phones you during the English class?"
+9. "When was the last time you went to the doctor's? Why?"
+10. "Why are you studying English?"
+11. "Are you more of an optimist or a pessimist?"
+12. "What rules are there at the place where you work?"
+13. "Tell us about something you are excellent at and something you are terrible at doing."
+14. "Tell us two tips for someone who is starting a new job next Monday."
 
 **C. INSTRUCCIONES PARA LAS 3 PALABRAS DE VOCABULARIO ("vocabulary"):**
 1. Elige 3 palabras o frases útiles en inglés relacionadas directamente con lo que se ve en la foto.

@@ -383,7 +383,7 @@ export class PhotoExamService {
     'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&h=600&q=80',
     // Turistas / amigos en la calle mirando un mapa o pidiendo direcciones
     'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&h=600&q=80',
-    'https://images.unsplash.com/photo-1516738901171-8eb4fc13bd20?auto=format&fit=crop&w=800&h=600&q=80',
+    'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=800&h=600&q=80',
     'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&h=600&q=80',
     // Personas en una cafetería o restaurante
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&h=600&q=80',
@@ -392,8 +392,8 @@ export class PhotoExamService {
     // Cocinando o comiendo en familia / pareja
     'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800&h=600&q=80',
     'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=800&h=600&q=80',
-    // Compras en tienda / supermercado / farmacia
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&h=600&q=80',
+    // Compras en tienda / supermercado / farmacia con personas
+    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&h=600&q=80',
     'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=800&h=600&q=80',
     // IDs verificados de Picsum Photos que contienen personas en escena (sin paisajes vacíos)
     'https://picsum.photos/id/1005/800/600',
@@ -523,7 +523,18 @@ export class PhotoExamService {
   // COMUNICACIÓN CON GEMINI MEDIANTE SUPABASE EDGE FUNCTION
   // ============================================================================
 
+  // Las 6 preguntas prioritarias que le toman en el examen (incluyendo la del sueño repetido)
+  private readonly priorityPersonalQuestions: readonly string[] = [
+    'Have you ever had the same dream more than once? Describe it.',
+    'What kind of people do you get on with? Why?',
+    'Are you studying anything at the moment? How long have you studied that? When did you start?',
+    'Tell us about your past habits.',
+    'What should you do when you have a headache, a stomachache or a cough?',
+    'How long have you studied English? Where did you start studying?',
+  ];
+
   private readonly realPersonalQuestionsPool: readonly string[] = [
+    ...this.priorityPersonalQuestions,
     'Do you dream regularly? Do you remember your dreams?',
     'What will you do if someone phones you during the English class?',
     "When was the last time you went to the doctor's? Why?",
@@ -532,14 +543,178 @@ export class PhotoExamService {
     'What rules are there at the place where you work?',
     'Tell us about something you are excellent at and something you are terrible at doing.',
     'Tell us two tips for someone who is starting a new job next Monday.',
-    'What kind of people do you get on with? Why?',
-    'Have you ever had the same dream more than once? Describe it.',
-    'Are you studying anything at the moment? How long have you studied that? When did you start?',
   ];
 
   private pickRandomPersonalQuestions(count = 4): string[] {
-    const shuffled = [...this.realPersonalQuestionsPool].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
+    const priorityShuffled = [...this.priorityPersonalQuestions].sort(() => Math.random() - 0.5);
+    const others = this.realPersonalQuestionsPool
+      .filter((q) => !this.priorityPersonalQuestions.includes(q))
+      .sort(() => Math.random() - 0.5);
+    // Garantiza al menos 2 o 3 de las nuevas preguntas prioritarias en cada tarjeta
+    const combined = [...priorityShuffled.slice(0, 3), ...others.slice(0, 2)].sort(
+      () => Math.random() - 0.5
+    );
+    return combined.slice(0, count);
+  }
+
+  /**
+   * Normaliza cada pregunta de "1) Talk about the picture" para que sea siempre CORTA y GENERAL
+   * como en la hoja real del examen (adaptando solo he/she/they/the man/the woman/his wife/her friend
+   * y quitando agregados específicos como "with the laptop" o "if they have to finish a project today").
+   */
+  private normalizeGeneralPictureQuestion(rawQuestion: string): string {
+    const q = rawQuestion.trim();
+    const lower = q.toLowerCase();
+
+    const isPlural =
+      /\b(they|them|their|people|friends|colleagues|students|couples|men|women)\b/i.test(q);
+    const isFemale = !isPlural && /\b(she|her|woman|girl|lady|mother|wife)\b/i.test(q);
+
+    // 1. "What are they doing with the laptop?" -> "What are they doing?"
+    if (/^what\s+(is|are)\s+.+?\bdoing\b/i.test(q)) {
+      if (isPlural) {
+        return 'What are they doing?';
+      }
+      if (/\bthe woman\b/i.test(q)) {
+        return 'What is the woman doing?';
+      }
+      if (/\bthe man\b/i.test(q)) {
+        return 'What is the man doing?';
+      }
+      return isFemale ? 'What is she doing?' : 'What is he doing?';
+    }
+
+    // 2. "What advice would you give them if they have to finish a project today?" -> "What advice would you give them?"
+    if (/^what\s+advice\s+would\s+you\s+give\b/i.test(q)) {
+      if (isPlural || /\bthem\b/i.test(q)) {
+        return 'What advice would you give them?';
+      }
+      return isFemale ? 'What advice would you give her?' : 'What advice would you give him?';
+    }
+
+    // 3. "What will happen if they don't stop laughing...?" -> "What will happen next?" / "What will happen later?"
+    if (/^what\s+will\s+happen\b/i.test(q)) {
+      return /\blater\b/i.test(q) ? 'What will happen later?' : 'What will happen next?';
+    }
+
+    // 4. "How long has he been in that room...?" -> "How long has he been there?"
+    if (/^how\s+long\s+(has|have)\b/i.test(q)) {
+      if (isPlural) {
+        return 'How long have they been there?';
+      }
+      return isFemale ? 'How long has she been there?' : 'How long has he been there?';
+    }
+
+    // 5. "How is the man feeling at this moment?" -> "How is the man feeling?" (manteniendo "¿What has happened?" si viene junto)
+    if (/^how\s+(is|are)\b/i.test(q) && /\bfeeling\b/i.test(q)) {
+      const hasHappenedPart = /\bwhat\s+has\s+happened/i.test(q);
+      if (isPlural) {
+        return hasHappenedPart
+          ? 'How are they feeling? What has happened?'
+          : 'How are they feeling?';
+      }
+      if (/\bthe man\b/i.test(q)) {
+        return hasHappenedPart
+          ? 'How is the man feeling? What has happened?'
+          : 'How is the man feeling?';
+      }
+      if (/\bthe woman\b/i.test(q)) {
+        return hasHappenedPart
+          ? 'How is the woman feeling? What has happened?'
+          : 'How is the woman feeling?';
+      }
+      if (isFemale) {
+        return hasHappenedPart
+          ? 'How is she feeling? What has happened to her?'
+          : 'How is she feeling?';
+      }
+      return hasHappenedPart
+        ? 'How is he feeling? What has happened?'
+        : 'How is he feeling?';
+    }
+
+    // 6. "What has happened to..." -> "What has happened?" / "What has happened to her/him?"
+    if (/^what\s+has\s+happened\b/i.test(q)) {
+      if (isPlural) {
+        return 'What has happened?';
+      }
+      if (isFemale && /\bto her\b/i.test(q)) {
+        return 'What has happened to her?';
+      }
+      if (!isFemale && /\bto him\b/i.test(q)) {
+        return 'What has happened to him?';
+      }
+      return 'What has happened?';
+    }
+
+    // 7. "Who are they and where are they...?" -> "Who are they? Where are they?"
+    if (/^who\s+(is|are)\b/i.test(q) || /^where\s+(is|are)\b/i.test(q)) {
+      if (isPlural) {
+        return 'Who are they? Where are they?';
+      }
+      return isFemale ? 'Who is she? Where is she?' : 'Who is he? Where is he?';
+    }
+
+    // 8. "What is his wife / he / she going to do...?"
+    if (/\bgoing\s+to\s+do\b/i.test(q)) {
+      if (/\bhis wife\b/i.test(q)) {
+        return 'What is his wife going to do?';
+      }
+      if (/\bher husband\b/i.test(q)) {
+        return 'What is her husband going to do?';
+      }
+      if (/\bfriend\b/i.test(q)) {
+        return isFemale
+          ? 'What is her friend going to do?'
+          : 'What is his friend going to do?';
+      }
+      if (isPlural) {
+        return 'What are they going to do after this?';
+      }
+      return isFemale
+        ? 'What is she going to do after this?'
+        : 'What is he going to do after this?';
+    }
+
+    // 9. "How was his/her life different in the past..."
+    if (/^how\s+was\b/i.test(q) && /\blife\s+different\b/i.test(q)) {
+      if (isPlural) {
+        return 'How was their life different in the past?';
+      }
+      return isFemale
+        ? 'How was her life different in the past?'
+        : 'How was his life different in the past?';
+    }
+
+    // 10. "What did he/she use to do when..."
+    if (/\buse\s+to\s+do\b/i.test(q)) {
+      if (isPlural) {
+        return 'What did they use to do when they were younger?';
+      }
+      return isFemale
+        ? 'What did she use to do when she was younger?'
+        : 'What did he use to do when he was younger?';
+    }
+
+    // 11. "What are his/her/their plans for the weekend..."
+    if (/\bplans\s+for\s+the\s+weekend\b/i.test(q)) {
+      if (isPlural) {
+        return 'What are their plans for the weekend?';
+      }
+      return isFemale
+        ? 'What are her plans for the weekend?'
+        : 'What are his plans for the weekend?';
+    }
+
+    // 12. "What does he/she look like..."
+    if (/\blook\s+like\b/i.test(lower)) {
+      if (isPlural) {
+        return 'Describe the people in the picture.';
+      }
+      return isFemale ? 'What does she look like?' : 'What does he look like?';
+    }
+
+    return q;
   }
 
   /**
@@ -590,7 +765,7 @@ export class PhotoExamService {
     }
 
     const cleanedQuestions = data.questions
-      .map((q) => String(q).trim())
+      .map((q) => this.normalizeGeneralPictureQuestion(String(q).trim()))
       .filter((q) => q.length > 0)
       .slice(0, 5);
 
@@ -607,10 +782,14 @@ export class PhotoExamService {
           .slice(0, 4)
       : [];
 
+    // Combinamos las preguntas prioritarias de su examen real con las de la IA sin duplicarlas
+    const priorityPicks = this.pickRandomPersonalQuestions(4);
+    const mergedPersonal = Array.from(
+      new Set([...priorityPicks.slice(0, 2), ...rawPersonal, ...priorityPicks.slice(2)])
+    ).slice(0, 4);
+
     const personalQuestions =
-      rawPersonal.length === 4
-        ? rawPersonal
-        : [...rawPersonal, ...this.pickRandomPersonalQuestions(4)].slice(0, 4);
+      mergedPersonal.length === 4 ? mergedPersonal : this.pickRandomPersonalQuestions(4);
 
     const fallbackVocab: VocabularyItem[] = [
       {
