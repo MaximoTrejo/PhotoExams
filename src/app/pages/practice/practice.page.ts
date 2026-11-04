@@ -793,45 +793,62 @@ export class PracticePage implements OnInit, OnDestroy, ViewWillEnter, ViewWillL
 
     const audioParts: Array<{ label: string; blob: Blob }> = [];
     const writtenSections: string[] = [];
+    const answeredQuestionsForEvaluation: string[] = [];
 
     // 1) Talk about the picture
     const pictureState = this.getItemState('picture');
-    if (pictureState.audioBlob && pictureState.audioBlob.size > 0) {
+    const hasPictureAudio = Boolean(pictureState.audioBlob && pictureState.audioBlob.size > 0);
+    const hasPictureText = pictureState.text.trim().length > 0;
+
+    if (hasPictureAudio && pictureState.audioBlob) {
       audioParts.push({
         label: '1) Talk about the picture (Descripción oral de la foto)',
         blob: pictureState.audioBlob,
       });
     }
-    if (pictureState.text.trim()) {
+    if (hasPictureText) {
       writtenSections.push(
         `1) Talk about the picture (Respuesta escrita):\n${pictureState.text.trim()}`
       );
     }
+    if (hasPictureAudio || hasPictureText) {
+      answeredQuestionsForEvaluation.push(
+        `1) Talk about the picture (Guía: ${this.questions.join(' / ')})`
+      );
+    }
 
-    // 2) Answer these questions (una por una)
+    // 2) Answer these questions (solo las que el estudiante respondió)
     for (let i = 0; i < this.personalQuestions.length; i++) {
       const key = this.getPersonalKey(i);
       const qState = this.getItemState(key);
       const qText = this.personalQuestions[i];
+      const hasQAudio = Boolean(qState.audioBlob && qState.audioBlob.size > 0);
+      const hasQText = qState.text.trim().length > 0;
 
-      if (qState.audioBlob && qState.audioBlob.size > 0) {
+      if (hasQAudio && qState.audioBlob) {
         audioParts.push({
-          label: `2) Personal Question ${i + 1} (${qText})`,
+          label: `Question ${i + 1}: ${qText}`,
           blob: qState.audioBlob,
         });
       }
-      if (qState.text.trim()) {
+      if (hasQText) {
         writtenSections.push(
-          `2) Personal Question ${i + 1} (${qText}) - Respuesta escrita:\n${qState.text.trim()}`
+          `Question ${i + 1} (${qText}) - Respuesta escrita:\n${qState.text.trim()}`
         );
+      }
+      if (hasQAudio || hasQText) {
+        answeredQuestionsForEvaluation.push(`Question ${i + 1}: ${qText}`);
       }
     }
 
     const combinedWrittenAnswer = writtenSections.join('\n\n');
-    const combinedQuestionsForEvaluation = [
-      ...this.questions.map((q) => `[Picture Guide] ${q}`),
-      ...this.personalQuestions.map((q, idx) => `[Personal Question ${idx + 1}] ${q}`),
-    ];
+    const combinedQuestionsForEvaluation =
+      answeredQuestionsForEvaluation.length > 0
+        ? answeredQuestionsForEvaluation
+        : [
+            `1) Talk about the picture (Guía: ${this.questions.join(' / ')})`,
+            ...this.personalQuestions.map((q, idx) => `Question ${idx + 1}: ${q}`),
+          ];
 
     this.isSubmittingAnswer = true;
 

@@ -27,12 +27,21 @@ export interface FeedbackSuggestionItem {
   example?: string;
 }
 
+export interface QuestionReviewItem {
+  title: string;
+  studentAnswer: string;
+  correction: string;
+  simplePhrases: string[];
+  suggestedVocab: string[];
+}
+
 export interface AiFeedback {
   hasErrors: boolean;
   noErrorsMessage: string;
   errores: FeedbackErrorItem[];
   aciertos: string[];
   sugerencias: FeedbackSuggestionItem[];
+  questionReviews?: QuestionReviewItem[];
   transcript?: string;
   rawMarkdown?: string;
 }

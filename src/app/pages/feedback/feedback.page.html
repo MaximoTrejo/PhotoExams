@@ -115,6 +115,72 @@
         }
       </div>
 
+      <!-- TARJETA PRINCIPAL: CORRECCIÓN PUNTUAL DE LA FOTO Y CADA PREGUNTA + FRASES SIMPLES Y VOCABULARIO -->
+      @if (feedback.questionReviews && feedback.questionReviews.length > 0) {
+        <ion-card class="surface-card feedback-card card-puntual">
+          <ion-card-header class="feedback-card-header">
+            <div class="header-icon-wrap icon-puntual">
+              <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+            </div>
+            <div>
+              <ion-card-subtitle>Análisis respuesta por respuesta</ion-card-subtitle>
+              <ion-card-title>
+                Corrección puntual de la foto y de cada pregunta
+              </ion-card-title>
+            </div>
+          </ion-card-header>
+
+          <ion-card-content>
+            <div class="question-reviews-list">
+              @for (item of feedback.questionReviews; track $index) {
+                <div class="question-review-box">
+                  <div class="qr-header">
+                    <span class="qr-badge">{{ $index + 1 }}</span>
+                    <h3 class="qr-title">{{ item.title }}</h3>
+                  </div>
+
+                  @if (item.studentAnswer) {
+                    <div class="qr-student-answer">
+                      <span class="qr-tag tag-student">Lo que respondiste</span>
+                      <p>"{{ item.studentAnswer }}"</p>
+                    </div>
+                  }
+
+                  <div class="qr-correction">
+                    <span class="qr-tag tag-correction">Corrección puntual</span>
+                    <p>{{ item.correction }}</p>
+                  </div>
+
+                  @if (item.simplePhrases && item.simplePhrases.length > 0) {
+                    <div class="qr-phrases-block">
+                      <span class="qr-sublabel">
+                        💬 Pequeñas frases simples que te pueden ayudar:
+                      </span>
+                      <ul class="qr-phrases-list">
+                        @for (phrase of item.simplePhrases; track $index) {
+                          <li>"{{ phrase }}"</li>
+                        }
+                      </ul>
+                    </div>
+                  }
+
+                  @if (item.suggestedVocab && item.suggestedVocab.length > 0) {
+                    <div class="qr-vocab-block">
+                      <span class="qr-sublabel">📚 Vocabulario sugerido:</span>
+                      <div class="qr-vocab-chips">
+                        @for (word of item.suggestedVocab; track $index) {
+                          <span class="qr-vocab-pill">{{ word }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </ion-card-content>
+        </ion-card>
+      }
+
       <!-- 7.2. TARJETA 1: ERRORES -->
       <ion-card class="surface-card feedback-card card-errores">
         <ion-card-header class="feedback-card-header">

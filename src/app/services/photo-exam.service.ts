@@ -12,6 +12,7 @@ import {
   GenerateQuestionsResponse,
   PracticeInsertPayload,
   PracticeRecord,
+  QuestionReviewItem,
   SyllabusRecord,
   SyllabusUpsertPayload,
   TranscribeAudioResponse,
@@ -1094,6 +1095,26 @@ export class PhotoExamService {
           }))
       : [];
 
+    const questionReviews: QuestionReviewItem[] = Array.isArray(raw.questionReviews)
+      ? raw.questionReviews
+          .filter((item) => Boolean(item?.title || item?.correction))
+          .map((item) => ({
+            title: String(item.title || 'Parte evaluada').trim(),
+            studentAnswer: String(item.studentAnswer || '').trim(),
+            correction: String(item.correction || '').trim(),
+            simplePhrases: Array.isArray(item.simplePhrases)
+              ? item.simplePhrases
+                  .map((p) => String(p).trim())
+                  .filter((p) => p.length > 0)
+              : [],
+            suggestedVocab: Array.isArray(item.suggestedVocab)
+              ? item.suggestedVocab
+                  .map((v) => String(v).trim())
+                  .filter((v) => v.length > 0)
+              : [],
+          }))
+      : [];
+
     return {
       hasErrors: Boolean(errores.length > 0),
       noErrorsMessage:
@@ -1102,6 +1123,7 @@ export class PhotoExamService {
       errores,
       aciertos,
       sugerencias,
+      questionReviews,
       transcript: raw.transcript?.trim(),
       rawMarkdown: raw.rawMarkdown,
     };

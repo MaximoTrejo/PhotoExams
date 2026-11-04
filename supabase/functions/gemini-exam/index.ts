@@ -89,12 +89,21 @@ interface FeedbackSuggestionItem {
   example?: string;
 }
 
+interface QuestionReviewItem {
+  title: string;
+  studentAnswer: string;
+  correction: string;
+  simplePhrases: string[];
+  suggestedVocab: string[];
+}
+
 interface StructuredFeedbackResponse {
   hasErrors: boolean;
   noErrorsMessage: string;
   errores: FeedbackErrorItem[];
   aciertos: string[];
   sugerencias: FeedbackSuggestionItem[];
+  questionReviews?: QuestionReviewItem[];
   transcript?: string;
   rawMarkdown?: string;
 }
@@ -244,83 +253,41 @@ function buildEvaluationPrompt(
     .map((q, idx) => `${idx + 1}. ${q}`)
     .join('\n');
 
-  return `Actúa como un profesor de inglés que ayuda a un estudiante a preparar un examen oral escolar mediante la descripción de fotografías.
+  return `Actúa como un profesor de inglés práctico y directo que corrige a un estudiante para su examen oral ("1) Talk about the picture" + "2) Answer these questions").
 
-Tu objetivo es evaluar la respuesta del estudiante de manera clara, amigable y constructiva.
+Tu objetivo es darle una **corrección bien puntual** de la descripción de la foto y de **cada pregunta que respondió**, acompañada de **pequeñas frases simples en inglés** que lo ayuden a responder con facilidad y **vocabulario sugerido**.
 
-La evaluación debe centrarse en si el estudiante comprende y aplica correctamente la gramática y el vocabulario de su resumen.
+**Instrucciones clave:**
+1. Sé **puntual y concreto**: analiza por separado la descripción de la foto ("1) Talk about the picture") y cada una de las preguntas personales ("Question 1", "Question 2", etc.) que el estudiante haya respondido.
+2. En la propiedad **"questionReviews"**, crea un objeto por cada parte/pregunta respondida por el estudiante:
+   - **"title"**: el nombre claro de esa parte (ej. "1) Talk about the picture" o "Question 1: Have you ever had the same dream more than once? Describe it.").
+   - **"studentAnswer"**: lo que el estudiante dijo o escribió para esa parte en inglés.
+   - **"correction"**: corrección puntual y directa en español sobre esa respuesta (si tuvo algún error gramatical muestra cómo decirlo bien en inglés, o si estuvo correcta indícalo y di cómo sonaría más natural).
+   - **"simplePhrases"**: **2 o 3 pequeñas frases simples y cortas en inglés** (fáciles de recordar en el examen oral) que le servirían para responder o ampliar esa pregunta/descripción. Ejemplo: *"In the picture I can see two people working"*, *"He looks worried because he has a problem"*, *"Yes, I have had that dream two or three times"*.
+   - **"suggestedVocab"**: **2 o 3 palabras o expresiones útiles en inglés con su significado corto en español entre paréntesis** ideales para esa foto o esa pregunta. Ejemplo: *"worried (preocupado)"*, *"in the background (al fondo)"*, *"get on well with (llevarse bien con)"*.
+3. En **"errores"**, lista únicamente los errores gramaticales reales que cometió (indicando frase original, versión corregida y explicación breve en español). Ignora typos menores.
+4. En **"aciertos"**, destaca de forma puntual lo que dijo bien en la descripción o en las preguntas.
+5. En **"sugerencias"**, brinda de 2 a 3 consejos prácticos con frases cortas simples ("example") y vocabulario útil.
 
-**Instrucciones:**
-
-1. Corrige los errores gramaticales importantes de la respuesta.
-2. Verifica si el estudiante aplicó correctamente las estructuras y el vocabulario incluidos en el resumen.
-3. Ignora los errores menores de ortografía (*typos*), ya que el objetivo es practicar para un examen oral.
-4. No penalices las respuestas sencillas si son correctas.
-5. No exijas vocabulario avanzado ni estructuras gramaticales que no aparezcan en los apuntes.
-6. Comprueba si las respuestas se relacionan con las preguntas y la fotografía.
-7. Si una respuesta es correcta, explica brevemente qué hizo bien.
-8. Si una respuesta es demasiado breve o incompleta, indica cómo podría ampliarla con una frase sencilla.
-9. Si hay errores, proporciona una versión corregida y una explicación breve.
-10. Distingue los errores gramaticales reales de las expresiones que son simplemente diferentes, pero igualmente correctas.
-11. No inventes errores para completar las secciones.
-12. No consideres incorrecta una respuesta solo porque utiliza palabras diferentes de las que esperabas.
-13. No penalices al estudiante por no utilizar todas las reglas del resumen si las preguntas no requieren aplicarlas.
-14. Utiliza un nivel de inglés apropiado para el estudiante.
-15. Escribe la explicación de la retroalimentación en español, pero conserva en inglés las frases originales y sus correcciones.
-16. Mantén un tono motivador y constructivo.
-
-**Estructura obligatoria de la respuesta:**
-
-### Errores
-
-Explica los errores gramaticales importantes encontrados.
-
-Para cada error, muestra:
-
-- La frase original.
-- La versión corregida.
-- Una explicación breve en español.
-
-Si no hay errores importantes, indica que la respuesta no presenta errores gramaticales relevantes.
-
-### Aciertos
-
-Destaca las estructuras gramaticales, el vocabulario y las ideas que el estudiante utilizó correctamente.
-
-Incluye ejemplos concretos de la respuesta cuando sea posible.
-
-### Sugerencias
-
-Proporciona entre dos y tres recomendaciones concretas para mejorar la respuesta.
-
-Las recomendaciones deben ser sencillas, prácticas y relacionadas con los temas del resumen.
-
-Cuando sea útil, incluye un ejemplo de una frase que el estudiante podría utilizar para expresarse mejor.
-
-**Preguntas realizadas:**
-
+**Partes / Preguntas evaluadas:**
 ${formattedQuestions}
 
 **Respuesta del estudiante:**
-
 ${userAnswer}
 
 **Resumen de gramática y vocabulario:**
-
 ${syllabus}
 
 **Contexto de la fotografía:**
-
 ${imageContext}
 
-**Importante:** no evalúes la complejidad de la respuesta. Evalúa si el estudiante responde adecuadamente, utiliza correctamente la gramática estudiada y logra comunicar sus ideas.
-
 Devuelve tu evaluación en formato JSON estructurado con las propiedades:
+- "questionReviews": lista de revisiones puntuales por cada parte respondida ({ "title", "studentAnswer", "correction", "simplePhrases", "suggestedVocab" }).
 - "hasErrors": booleano que indica si hubo errores gramaticales importantes.
-- "noErrorsMessage": mensaje motivador en español cuando no hay errores importantes (por ejemplo: "¡Excelente trabajo! Tu respuesta no presenta errores gramaticales relevantes.").
-- "errores": lista de objetos con { "original": "frase en inglés", "corrected": "versión corregida en inglés", "explanation": "explicación breve en español" }.
-- "aciertos": lista de textos en español (conservando las citas o ejemplos en inglés) destacando lo que hizo bien.
-- "sugerencias": lista de entre 2 y 3 objetos con { "advice": "recomendación en español", "example": "ejemplo opcional de frase en inglés" }.`;
+- "noErrorsMessage": mensaje motivador en español cuando no hay errores importantes.
+- "errores": lista de objetos con { "original": "frase en inglés", "corrected": "versión corregida en inglés", "explanation": "explicación puntual en español" }.
+- "aciertos": lista de textos puntuales en español (con citas en inglés) destacando lo que hizo bien.
+- "sugerencias": lista de entre 2 y 3 objetos con { "advice": "sugerencia puntual o vocabulario en español", "example": "frase simple corta en inglés lista para usar" }.`;
 }
 
 function delay(ms: number): Promise<void> {
@@ -770,6 +737,32 @@ IMPORTANT RULES:
       }
 
       const schemaProperties: Record<string, unknown> = {
+        questionReviews: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              title: { type: 'STRING' },
+              studentAnswer: { type: 'STRING' },
+              correction: { type: 'STRING' },
+              simplePhrases: {
+                type: 'ARRAY',
+                items: { type: 'STRING' },
+              },
+              suggestedVocab: {
+                type: 'ARRAY',
+                items: { type: 'STRING' },
+              },
+            },
+            required: [
+              'title',
+              'studentAnswer',
+              'correction',
+              'simplePhrases',
+              'suggestedVocab',
+            ],
+          },
+        },
         hasErrors: { type: 'BOOLEAN' },
         noErrorsMessage: { type: 'STRING' },
         errores: {
@@ -802,6 +795,7 @@ IMPORTANT RULES:
       };
 
       const requiredFields = [
+        'questionReviews',
         'hasErrors',
         'noErrorsMessage',
         'errores',
@@ -867,6 +861,9 @@ IMPORTANT RULES:
         errores: Array.isArray(parsed.errores) ? parsed.errores : [],
         aciertos: Array.isArray(parsed.aciertos) ? parsed.aciertos : [],
         sugerencias: Array.isArray(parsed.sugerencias) ? parsed.sugerencias : [],
+        questionReviews: Array.isArray(parsed.questionReviews)
+          ? parsed.questionReviews
+          : [],
         transcript: (parsed.transcript || userAnswer || '').trim(),
         rawMarkdown,
       };
